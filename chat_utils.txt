@@ -1,0 +1,131 @@
+I want to make a windows form for downloading a youtube url but have more options like:
+* Two radio buttons: Video & audio or Audio only
+* Resolution - pick from multiple options
+* Folder path for download
+Button for fetching resolution and other details 
+Button for the actual download  after all of the needed info is complete.
+
+How to order them inside a windows form? Can you give me an image? If not a txt drawing of the buttons and text boxes position, pls?
+
+
+what if after fetch is done I want to get the title of the url and maybe the thumbnail to appear in the form?
+
+-------------------------------------------------
+|                YouTube Downloader              |
+-------------------------------------------------
+| URL: [_____________________________] [Fetch]  |
+-------------------------------------------------
+| Title: [_____________________________]         |
+| Thumbnail: [________Picture Box_________]      |
+-------------------------------------------------
+|               Download Options                 |
+| ( ) Video & Audio   ( ) Audio Only            |
+|------------------------------------------------|
+| Resolution: [Dropdown List]                   |
+|------------------------------------------------|
+| Folder Path: [_____________________] [Browse] |
+-------------------------------------------------
+|              [Download]                       |
+-------------------------------------------------
+
+
+
+what if the link if of a list of youtube videos? how can show the title and thumbnails of al the items in the list given the fact that their number is varible? 
+
+-------------------------------------------------
+|                YouTube Downloader              |
+-------------------------------------------------
+| URL: [_____________________________] [Fetch]  |
+-------------------------------------------------
+|               Download Options                 |
+| ( ) Video & Audio   ( ) Audio Only            |
+|------------------------------------------------|
+| Resolution: [Dropdown List]                   |
+|------------------------------------------------|
+| Folder Path: [_____________________] [Browse] |
+-------------------------------------------------
+|                 Video List                    |
+| [Scrollable Panel or ListView Control]        |
+|  -------------------------------------------- |
+| | [Thumbnail] [Title]                        | |
+| | [Thumbnail] [Title]                        | |
+| | [Thumbnail] [Title]                        | |
+| |                                            | |
+| |                                            | |
+|  -------------------------------------------- |
+-------------------------------------------------
+|              [Download]                       |
+-------------------------------------------------
+
+Detailed Layout Description:
+URL Input Field: A textbox for entering the YouTube URL and a "Fetch" button next to it for fetching video/playlist details.
+Download Options: Two radio buttons for selecting between "Video & Audio" and "Audio Only".
+Resolution Dropdown: A dropdown list to select the resolution of the video(s).
+Folder Path: A textbox for entering the folder path where the video/audio will be saved, with a "Browse" button to open a dialog for folder selection.
+Video List: A scrollable panel or list view control to display thumbnails and titles of all videos in the playlist. This control should be able to dynamically accommodate the number of videos in the playlist.
+Download Button: A button to start the download process after all the necessary information is provided.
+Implementation Tips:
+Scrollable Panel or ListView: Use a panel with AutoScroll set to true or a ListView control to display the thumbnails and titles. For a ListView, you can use LargeIcon view mode to show thumbnails and titles.
+
+Dynamically Adding Items: After fetching the playlist details, dynamically add items to the panel or ListView based on the number of videos in the playlist. Each item should include an image (thumbnail) and a label (title).
+
+Handling Playlist Fetching: Use a YouTube API library or a tool like youtube-dl to fetch playlist details, including video titles and thumbnails.
+
+Here's an example of how the elements might be added in C# using Windows Forms:
+
+private void FetchButton_Click(object sender, EventArgs e)
+{
+    string url = urlTextBox.Text;
+    var videos = FetchPlaylistDetails(url); // Implement this method to fetch video details from YouTube
+
+    // Clear previous items
+    videoListView.Items.Clear();
+
+    foreach (var video in videos)
+    {
+        ListViewItem item = new ListViewItem();
+        item.Text = video.Title;
+        item.ImageKey = video.ThumbnailPath; // Add image to ImageList linked with ListView
+        videoListView.Items.Add(item);
+    }
+}
+
+// Method to fetch playlist details (pseudo-code)
+private List<Video> FetchPlaylistDetails(string url)
+{
+    // Use YouTube API or youtube-dl to fetch video details
+    // Return a list of video details, each containing title and thumbnail path
+}
+
+This approach ensures that your application can handle a varying number of videos in a playlist, displaying each with its thumbnail and title in a scrollable area.
+
+
+
+
+Cum as vrea-o eu:
+
+-------------------------------------------------
+|                YouTube Downloader              |
+-------------------------------------------------
+| URL: [_____________________________] [Fetch]  |  (fetching the link dialog or progress bar - after clicking the button)
+-------------------------------------------------
+|               Download Options                 |
+| ( ) Video & Audio   ( ) Audio Only            |   - if audio only - no resolution - best audio quality
+|------------------------------------------------|
+| Resolution: [Dropdown List]                   |
+|------------------------------------------------|
+| Folder Path: [_____________________] [Browse] |
+-------------------------------------------------
+|                 Video List                    |
+| [Scrollable Panel or ListView Control]        |
+|  -------------------------------------------- |
+| |                            Resolution      | |
+| | [Thumbnail] [Title]     [Dropdown List]    | |
+| | [Thumbnail] [Title]     [Dropdown List]    | |
+| | [Thumbnail] [Title]     [Dropdown List]    | |
+| |                                            | |
+| |                                            | |
+|  -------------------------------------------- |
+-------------------------------------------------
+|              [Download]                       |
+-------------------------------------------------
