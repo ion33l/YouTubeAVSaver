@@ -1,33 +1,101 @@
+using AngleSharp.Dom;
+using System.Windows.Forms;
+using VideoLibrary;
 using YoutubeExplode;
+using YoutubeExplode.Common;
+using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
 namespace YoutubeDownloader
 {
     public partial class Form1 : Form
     {
-        private readonly YoutubeClient ytClient;
-
+        public YoutubeClient ytClient;
+        private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)> videoControlValues =
+                new List<(bool, int, string, string, string[], string)>();
+        private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox)> videoControlReferences =
+            new List<(CheckBox, Label, TextBox, PictureBox, ComboBox)>();
         public Form1()
         {
             InitializeComponent();
             ytClient = new YoutubeClient();
-            //this.Controls.Add(scrollablePanel);
-
-            /*Panel scrollablePanel = new Panel
+            panelAudioOnly.Visible = false;
+        }
+        private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
             {
-                AutoScroll = true,
-                Width = 500,
-                Height = 200,
-                BackColor = Color.White,
-                Location = new Point(45, 226)
-            };
-            this.Controls.Add(scrollablePanel);*/
+                // Suppress the default beep sound
+                e.SuppressKeyPress = true;
 
+                // Call the button click event handler
+                fetchButton_Click(this, new EventArgs());
+            }
+        }
+
+        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[] GetModifiedValues()
+        {
+            var modifiedValues = new List<(bool, int, string, string, string)>();
+
+            foreach (var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox) in videoControlReferences)
+            {
+                bool isChecked = checkBox.Checked;
+                int no = int.Parse(noLabel.Text); // Assuming the label text is the number
+                string title = titleTextBox.Text;
+                string thumbnail = pictureBox.ImageLocation;
+                string selectedResolution = resolutionComboBox.SelectedItem?.ToString() ?? "N/A";
+
+                modifiedValues.Add((isChecked, no, title, thumbnail, selectedResolution));
+            }
+
+            return modifiedValues.ToArray();
+        }
+
+        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[]> getPanelVideosDetailsAsync(string url)
+        {
+            //TODO - try not to repeat that declarations
+            //List<YoutubeExplode.Playlists.PlaylistVideo> videosToProcess = new List<YoutubeExplode.Playlists.PlaylistVideo>();
+
+            if (url.Contains("playlist"))
+            {
+                var playlist = await ytClient.Playlists.GetAsync(url);
+                var playlistVideos = await ytClient.Playlists.GetVideosAsync(playlist.Id);
+
+                for (int i = 0; i < playlistVideos.Count; i++)
+                {
+                    var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
+                    var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
+                    var videoStreams = streamManifest.GetVideoStreams();
+                    var resolutions = videoStreams
+                        .Select(s => s.VideoQuality.Label)
+                        .Distinct();
+                    //.OrderBy(r => r);
+
+                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0]));                   
+                }
+            }
+            else
+            {
+                var video = await ytClient.Videos.GetAsync(url);
+                var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
+                var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
+                var videoStreams = streamManifest.GetVideoStreams();
+                var resolutions = videoStreams
+                    .Select(s => s.VideoQuality.Label)
+                    .Distinct();
+                //.OrderBy(r => r);
+                videoControlValues.Add((true, 1, video.Title, video.Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0]));
+            }
+
+            return videoControlValues.ToArray();
         }
 
         private void ClearPanel()
         {
             scrollablePanel.Controls.Clear();
+            videoControlReferences.Clear();
+
+            videoControlValues.Clear();
         }
 
         private void UpdatePanel((bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[] videos)
@@ -117,6 +185,9 @@ namespace YoutubeDownloader
                 }
 
                 videoPanel.Controls.Add(resolutionComboBox);
+
+                // Store control references
+                videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox));
             }
         }
 
@@ -139,52 +210,22 @@ namespace YoutubeDownloader
                 MessageBox.Show("Please enter the Youtube URL before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            try
-            {
-                var video = await ytClient.Videos.GetAsync(videoUrl);
-                //listResolutions.Text = $"Video Title: {video.Title}";
-                //MessageBox.Show(listResolutions.Text);
-                /*
-                var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(video.Id);
-                var streamInfos = streamManifest.GetMuxedStreams();
 
-                listResolutions.Items.Clear();
-                foreach (var streamInfo in streamInfos)
-                {
-                    listResolutions.Items.Add($"{streamInfo.VideoQualityLabel} - {streamInfo.Container.Name}");
-                }
-                
-                if (listResolutions.Items.Count > 0)
-                {
-                    listResolutions.SelectedIndex = 0;
-                }
-                else
-                {
-                    MessageBox.Show("No available qualities found.");
-                }*/
+            // Clear the panel
+            ClearPanel();
 
-                // Example video data
-                var videos = new (bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[]
-                {
-                    (true, 1, "Video 1", "path_to_thumbnail1.jpg", new string[] { "480p", "720p", "1080p" }, "720p"),
-                    //(false, 2, "Video 2", "path_to_thumbnail2.jpg", new string[] { "720p", "1080p", "1440p" }, "1080p"),
-                    //(true, 3, "Video 3", "path_to_thumbnail3.jpg", new string[] { "480p", "1080p", "4K" }, "1440p"),
-                    //(false, 4, "Video 4", "path_to_thumbnail2.jpg", new string[] { "720p", "1080p", "1440p" }, "1080p"),
-                    //(false, 5, "Video 5", "path_to_thumbnail2.jpg", new string[] { "720p", "1080p", "1440p" }, "1080p"),
-                    //(false, 6, "Video 6", "path_to_thumbnail2.jpg", new string[] { "720p", "1080p", "1440p" }, "1080p"),
+            string originalText = fetchButton.Text;
+            fetchButton.Text = "Pending";
+            fetchButton.Enabled = false;
+            downloadButton.Enabled = false;
+            //TODO - add a progress bar
 
-                };
+            // Update the panel with new video data
+            UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
 
-                // Clear the panel
-                ClearPanel();
-
-                // Update the panel with new video data
-                UpdatePanel(videos);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error fetching video qualities: {ex.Message}");
-            }
+            fetchButton.Text = originalText;
+            fetchButton.Enabled = true;
+            downloadButton.Enabled = true;
         }
 
         private void browseButton_Click(object sender, EventArgs e)
@@ -203,6 +244,16 @@ namespace YoutubeDownloader
 
         private void downloadButton_Click(object sender, EventArgs e)
         {
+            string originalText = downloadButton.Text;
+            downloadButton.Text = "Downloading";
+            downloadButton.Enabled = false;
+
+            var modifiedValues = GetModifiedValues();
+            foreach (var value in modifiedValues)
+            {
+                MessageBox.Show($"Check: {value.Check}, No: {value.No}, Title: {value.Title}, Thumbnail: {value.Thumbnail}, Resolution: {value.SelectedResolution}");
+            }
+
             var videoUrl = youtubeURLTextBox.Text;
             var downloadPath = txtFolderPath.Text;
             if (string.IsNullOrWhiteSpace(videoUrl))
@@ -220,6 +271,9 @@ namespace YoutubeDownloader
             {
                 downloadAudioVideo(videoUrl, downloadPath);
 
+
+                MessageBox.Show(scrollablePanel.ToString(), "scrollablePanel", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                 MessageBox.Show("Video download initiated.", "Download", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             }
@@ -232,6 +286,15 @@ namespace YoutubeDownloader
             {
                 MessageBox.Show("Please select a download option before proceeding.", "Selection Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+
+            downloadButton.Text = originalText;
+            downloadButton.Enabled = true;
+
+        }
+
+        private void audioOnlyButton_CheckedChanged(object sender, EventArgs e)
+        {
+            panelAudioOnly.Visible = audioOnlyButton.Checked;
         }
     }
 }
