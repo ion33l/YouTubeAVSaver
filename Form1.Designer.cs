@@ -48,6 +48,7 @@
             label12 = new Label();
             scrollablePanel = new Panel();
             fetchButton = new Button();
+            panelAudioOnly = new Panel();
             SuspendLayout();
             // 
             // youtubeURLTextBox
@@ -56,11 +57,12 @@
             youtubeURLTextBox.Name = "youtubeURLTextBox";
             youtubeURLTextBox.Size = new Size(350, 23);
             youtubeURLTextBox.TabIndex = 0;
+            youtubeURLTextBox.KeyDown += youtubeURLTextBox_KeyDown;
             // 
             // downloadButton
             // 
             downloadButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            downloadButton.Location = new Point(250, 647);
+            downloadButton.Location = new Point(250, 546);
             downloadButton.Name = "downloadButton";
             downloadButton.Size = new Size(100, 40);
             downloadButton.TabIndex = 1;
@@ -88,6 +90,7 @@
             // videoAndAudioButton
             // 
             videoAndAudioButton.AutoSize = true;
+            videoAndAudioButton.Checked = true;
             videoAndAudioButton.Location = new Point(198, 79);
             videoAndAudioButton.Name = "videoAndAudioButton";
             videoAndAudioButton.Size = new Size(113, 19);
@@ -103,9 +106,9 @@
             audioOnlyButton.Name = "audioOnlyButton";
             audioOnlyButton.Size = new Size(85, 19);
             audioOnlyButton.TabIndex = 5;
-            audioOnlyButton.TabStop = true;
             audioOnlyButton.Text = "Audio Only";
             audioOnlyButton.UseVisualStyleBackColor = true;
+            audioOnlyButton.CheckedChanged += audioOnlyButton_CheckedChanged;
             // 
             // label1
             // 
@@ -131,7 +134,7 @@
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label3.Location = new Point(485, 205);
+            label3.Location = new Point(487, 202);
             label3.Name = "label3";
             label3.Size = new Size(66, 15);
             label3.TabIndex = 9;
@@ -191,7 +194,7 @@
             // 
             label9.AutoSize = true;
             label9.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label9.Location = new Point(28, 205);
+            label9.Location = new Point(28, 202);
             label9.Name = "label9";
             label9.Size = new Size(28, 15);
             label9.TabIndex = 10;
@@ -201,7 +204,7 @@
             // 
             label10.AutoSize = true;
             label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.Location = new Point(399, 205);
+            label10.Location = new Point(399, 202);
             label10.Name = "label10";
             label10.Size = new Size(65, 15);
             label10.TabIndex = 11;
@@ -211,7 +214,7 @@
             // 
             label11.AutoSize = true;
             label11.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label11.Location = new Point(84, 205);
+            label11.Location = new Point(84, 202);
             label11.Name = "label11";
             label11.Size = new Size(32, 15);
             label11.TabIndex = 12;
@@ -221,7 +224,7 @@
             // 
             label12.AutoSize = true;
             label12.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label12.Location = new Point(55, 205);
+            label12.Location = new Point(55, 202);
             label12.Name = "label12";
             label12.Size = new Size(26, 15);
             label12.TabIndex = 16;
@@ -233,7 +236,7 @@
             scrollablePanel.BackColor = SystemColors.Control;
             scrollablePanel.Location = new Point(20, 217);
             scrollablePanel.Name = "scrollablePanel";
-            scrollablePanel.Size = new Size(550, 400);
+            scrollablePanel.Size = new Size(550, 300);
             scrollablePanel.TabIndex = 17;
             // 
             // fetchButton
@@ -247,18 +250,26 @@
             fetchButton.UseVisualStyleBackColor = true;
             fetchButton.Click += fetchButton_Click;
             // 
+            // panelAudioOnly
+            // 
+            panelAudioOnly.Location = new Point(480, 202);
+            panelAudioOnly.Name = "panelAudioOnly";
+            panelAudioOnly.Size = new Size(75, 315);
+            panelAudioOnly.TabIndex = 19;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(584, 729);
+            ClientSize = new Size(584, 611);
+            Controls.Add(panelAudioOnly);
+            Controls.Add(label3);
             Controls.Add(fetchButton);
             Controls.Add(scrollablePanel);
             Controls.Add(label12);
             Controls.Add(label9);
             Controls.Add(label10);
             Controls.Add(label11);
-            Controls.Add(label3);
             Controls.Add(label8);
             Controls.Add(label7);
             Controls.Add(label6);
@@ -299,6 +310,8 @@
         private Label label11;
         private Label label12;
         private Panel scrollablePanel;
+        private Panel panelAudioOnly;
         private Button fetchButton;
+
     }
 }
