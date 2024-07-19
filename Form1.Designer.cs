@@ -47,6 +47,7 @@
             label11 = new Label();
             label12 = new Label();
             scrollablePanel = new Panel();
+            progressBar = new ProgressBar();
             fetchButton = new Button();
             panelAudioOnly = new Panel();
             SuspendLayout();
@@ -239,6 +240,13 @@
             scrollablePanel.Size = new Size(550, 300);
             scrollablePanel.TabIndex = 17;
             // 
+            // progressBar
+            // 
+            progressBar.Location = new Point(120, 2);
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(350, 23);
+            progressBar.TabIndex = 0;
+            // 
             // fetchButton
             // 
             fetchButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
@@ -262,6 +270,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(progressBar);
             Controls.Add(panelAudioOnly);
             Controls.Add(label3);
             Controls.Add(fetchButton);
@@ -312,6 +321,6 @@
         private Panel scrollablePanel;
         private Panel panelAudioOnly;
         private Button fetchButton;
-
+        private ProgressBar progressBar;
     }
 }

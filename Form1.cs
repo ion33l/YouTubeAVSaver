@@ -20,6 +20,7 @@ namespace YoutubeDownloader
             InitializeComponent();
             ytClient = new YoutubeClient();
             panelAudioOnly.Visible = false;
+            progressBar.Visible = false;
         }
         private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -60,9 +61,11 @@ namespace YoutubeDownloader
             {
                 var playlist = await ytClient.Playlists.GetAsync(url);
                 var playlistVideos = await ytClient.Playlists.GetVideosAsync(playlist.Id);
-
+                progressBar.Visible = true;
                 for (int i = 0; i < playlistVideos.Count; i++)
                 {
+                    UpdateProgress((int)(i * 100 / playlistVideos.Count));
+
                     var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
                     var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                     var videoStreams = streamManifest.GetVideoStreams();
@@ -70,9 +73,10 @@ namespace YoutubeDownloader
                         .Select(s => s.VideoQuality.Label)
                         .Distinct();
                     //.OrderBy(r => r);
-
+ 
                     videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0]));                   
                 }
+                progressBar.Visible = false;
             }
             else
             {
@@ -90,6 +94,23 @@ namespace YoutubeDownloader
             return videoControlValues.ToArray();
         }
 
+        private void audioOnlyButton_CheckedChanged(object sender, EventArgs e)
+        {
+            panelAudioOnly.Visible = audioOnlyButton.Checked;
+        }
+
+
+        private void UpdateProgress(int value)
+        {
+            if (progressBar.InvokeRequired)
+            {
+                progressBar.Invoke(new Action<int>(UpdateProgress), value);
+            }
+            else
+            {
+                progressBar.Value = value;
+            }
+        }
         private void ClearPanel()
         {
             scrollablePanel.Controls.Clear();
@@ -107,6 +128,7 @@ namespace YoutubeDownloader
             for (int i = 0; i < videos.Length; i++)
             {
                 var video = videos[i];
+                //Image thumbnailImage = await DownloadImageAsync(video.Thumbnail);
 
                 // Choose the background color based on the index
                 Color backgroundColor = (i % 2 == 0) ? evenColor : oddColor;
@@ -156,6 +178,7 @@ namespace YoutubeDownloader
                     Location = new Point(380, 25),
                     Size = new Size(50, 50),
                     ImageLocation = video.Thumbnail, // TODO - Use actual thumbnail path
+                    //Image = thumbnailImage,
                     SizeMode = PictureBoxSizeMode.StretchImage,
                     BackColor = backgroundColor
                 };
@@ -215,7 +238,7 @@ namespace YoutubeDownloader
             ClearPanel();
 
             string originalText = fetchButton.Text;
-            fetchButton.Text = "Pending";
+            fetchButton.Text = "Fetching";
             fetchButton.Enabled = false;
             downloadButton.Enabled = false;
             //TODO - add a progress bar
@@ -292,9 +315,5 @@ namespace YoutubeDownloader
 
         }
 
-        private void audioOnlyButton_CheckedChanged(object sender, EventArgs e)
-        {
-            panelAudioOnly.Visible = audioOnlyButton.Checked;
-        }
     }
 }
