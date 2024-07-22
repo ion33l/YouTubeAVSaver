@@ -34,9 +34,9 @@ namespace YoutubeDownloader
             }
         }
 
-        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[] GetModifiedValues()
+        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[] GetFetchedVideoDetails()
         {
-            var modifiedValues = new List<(bool, int, string, string, string)>();
+            var fetchedVideoDetails = new List<(bool, int, string, string, string)>();
 
             foreach (var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox) in videoControlReferences)
             {
@@ -46,10 +46,10 @@ namespace YoutubeDownloader
                 string thumbnail = pictureBox.ImageLocation;
                 string selectedResolution = resolutionComboBox.SelectedItem?.ToString() ?? "N/A";
 
-                modifiedValues.Add((isChecked, no, title, thumbnail, selectedResolution));
+                fetchedVideoDetails.Add((isChecked, no, title, thumbnail, selectedResolution));
             }
 
-            return modifiedValues.ToArray();
+            return fetchedVideoDetails.ToArray();
         }
 
         async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[]> getPanelVideosDetailsAsync(string url)
@@ -221,9 +221,7 @@ namespace YoutubeDownloader
         }
 
         static void downloadAudioOnly(string URL, string downloadPath)
-        {
-
-        }
+        {  }
 
         private async void fetchButton_Click(object sender, EventArgs e)
         {
@@ -271,8 +269,8 @@ namespace YoutubeDownloader
             downloadButton.Text = "Downloading";
             downloadButton.Enabled = false;
 
-            var modifiedValues = GetModifiedValues();
-            foreach (var value in modifiedValues)
+            var fetchedVideoDetails = GetFetchedVideoDetails();
+            foreach (var value in fetchedVideoDetails)
             {
                 MessageBox.Show($"Check: {value.Check}, No: {value.No}, Title: {value.Title}, Thumbnail: {value.Thumbnail}, Resolution: {value.SelectedResolution}");
             }
