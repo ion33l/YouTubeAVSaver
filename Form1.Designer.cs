@@ -47,9 +47,13 @@
             label11 = new Label();
             label12 = new Label();
             scrollablePanel = new Panel();
+            panelAudioOnly = new Panel();
+            label14 = new Label();
             progressBar = new ProgressBar();
             fetchButton = new Button();
-            panelAudioOnly = new Panel();
+            label13 = new Label();
+            scrollablePanel.SuspendLayout();
+            panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
             // youtubeURLTextBox
@@ -135,7 +139,7 @@
             // 
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label3.Location = new Point(487, 202);
+            label3.Location = new Point(420, 202);
             label3.Name = "label3";
             label3.Size = new Size(66, 15);
             label3.TabIndex = 9;
@@ -205,7 +209,7 @@
             // 
             label10.AutoSize = true;
             label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.Location = new Point(399, 202);
+            label10.Location = new Point(340, 202);
             label10.Name = "label10";
             label10.Size = new Size(65, 15);
             label10.TabIndex = 11;
@@ -235,10 +239,29 @@
             // 
             scrollablePanel.AutoScroll = true;
             scrollablePanel.BackColor = SystemColors.Control;
+            scrollablePanel.Controls.Add(panelAudioOnly);
             scrollablePanel.Location = new Point(20, 217);
             scrollablePanel.Name = "scrollablePanel";
             scrollablePanel.Size = new Size(550, 300);
             scrollablePanel.TabIndex = 17;
+            // 
+            // panelAudioOnly
+            // 
+            panelAudioOnly.Controls.Add(label14);
+            panelAudioOnly.Location = new Point(100, 14);
+            panelAudioOnly.Name = "panelAudioOnly";
+            panelAudioOnly.Size = new Size(125, 315);
+            panelAudioOnly.TabIndex = 19;
+            // 
+            // label14
+            // 
+            label14.AutoSize = true;
+            label14.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label14.Location = new Point(9, 1);
+            label14.Name = "label14";
+            label14.Size = new Size(109, 15);
+            label14.TabIndex = 20;
+            label14.Text = "Best Audio Quality";
             // 
             // progressBar
             // 
@@ -258,20 +281,23 @@
             fetchButton.UseVisualStyleBackColor = true;
             fetchButton.Click += fetchButton_Click;
             // 
-            // panelAudioOnly
+            // label13
             // 
-            panelAudioOnly.Location = new Point(480, 202);
-            panelAudioOnly.Name = "panelAudioOnly";
-            panelAudioOnly.Size = new Size(75, 315);
-            panelAudioOnly.TabIndex = 19;
+            label13.AutoSize = true;
+            label13.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label13.Location = new Point(490, 202);
+            label13.Name = "label13";
+            label13.Size = new Size(30, 15);
+            label13.TabIndex = 19;
+            label13.Text = "Size";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(label13);
             Controls.Add(progressBar);
-            Controls.Add(panelAudioOnly);
             Controls.Add(label3);
             Controls.Add(fetchButton);
             Controls.Add(scrollablePanel);
@@ -294,6 +320,9 @@
             Controls.Add(youtubeURLTextBox);
             Name = "Form1";
             Text = "YoutubeDownloader";
+            scrollablePanel.ResumeLayout(false);
+            panelAudioOnly.ResumeLayout(false);
+            panelAudioOnly.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -322,5 +351,7 @@
         private Panel panelAudioOnly;
         private Button fetchButton;
         private ProgressBar progressBar;
+        private Label label13;
+        private Label label14;
     }
 }

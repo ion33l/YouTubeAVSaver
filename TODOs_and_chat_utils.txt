@@ -1,11 +1,15 @@
 TODOs:
 
 x 1) Show thumbnails in the main panel
-x 2) Show size in the main panel
+v 2) Show size in the main panel
 x 3) Download buttons
 
 x 4) Optional: Adaptive menu (for the case when maximize is done)
 
+
+
+
+ChatGPT utils:
 
 I want to make a windows form for downloading a youtube url but have more options like:
 * Two radio buttons: Video & audio or Audio only

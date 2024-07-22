@@ -11,8 +11,8 @@ namespace YoutubeDownloader
     public partial class Form1 : Form
     {
         public YoutubeClient ytClient;
-        private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)> videoControlValues =
-                new List<(bool, int, string, string, string[], string)>();
+        private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes)> videoControlValues =
+                new List<(bool, int, string, string, string[], string, string[])>();
         private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox)> videoControlReferences =
             new List<(CheckBox, Label, TextBox, PictureBox, ComboBox)>();
         public Form1()
@@ -52,7 +52,7 @@ namespace YoutubeDownloader
             return fetchedVideoDetails.ToArray();
         }
 
-        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[]> getPanelVideosDetailsAsync(string url)
+        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes)[]> getPanelVideosDetailsAsync(string url)
         {
             //TODO - try not to repeat that declarations
             //List<YoutubeExplode.Playlists.PlaylistVideo> videosToProcess = new List<YoutubeExplode.Playlists.PlaylistVideo>();
@@ -69,12 +69,22 @@ namespace YoutubeDownloader
                     var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
                     var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                     var videoStreams = streamManifest.GetVideoStreams();
-                    var resolutions = videoStreams
-                        .Select(s => s.VideoQuality.Label)
-                        .Distinct();
-                    //.OrderBy(r => r);
- 
-                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0]));                   
+
+                    var resolutionSizeList = videoStreams
+                        .Select(s => new { Resolution = s.VideoQuality.Label, Size = (s.Size.Bytes / (1024.0 * 1024.0)).ToString("0.##") + " MB" })
+                        .Distinct()
+                        .ToList();
+
+                    // Create arrays for resolutions and sizes
+                    string[] resolutions = resolutionSizeList.Select(rs => rs.Resolution).ToArray();
+                    string[] sizes = resolutionSizeList.Select(rs => rs.Size).ToArray();
+                    for (int j = 0; j < sizes.Length; j++)
+                    {
+                        if (resolutions[j] == null)
+                            sizes[j] = "N/A";
+                    }
+
+                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray()));
                 }
                 progressBar.Visible = false;
             }
@@ -84,11 +94,32 @@ namespace YoutubeDownloader
                 var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
                 var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                 var videoStreams = streamManifest.GetVideoStreams();
-                var resolutions = videoStreams
-                    .Select(s => s.VideoQuality.Label)
-                    .Distinct();
-                //.OrderBy(r => r);
-                videoControlValues.Add((true, 1, video.Title, video.Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0]));
+
+                /*var resolutionSizeList = videoStreams
+                                        .Select(s => new { Resolution = s.VideoQuality.Label, Size = (s.Size.Bytes / (1024.0 * 1024.0)).ToString("0.##") + " MB" })
+                                        .Distinct()
+                                        .ToList();
+                */
+                var resolutionSizeList = videoStreams
+                                        .Select(s => new {
+                                            Resolution = s.VideoQuality.Label,
+                                            Bitrate = s.Bitrate, // Assuming Bitrate is available in Kbps
+                                           // Framerate = s.FrameRate, // Assuming FrameRate is available
+                                            Size = (s.Size.Bytes / (1024.0 * 1024.0)).ToString("0.##") + " MB"
+                                        })
+                                        .Distinct()
+                                        .ToList();
+
+                // Create arrays for resolutions and sizes
+                string[] resolutions = resolutionSizeList.Select(rs => rs.Resolution).ToArray();
+                string[] sizes = resolutionSizeList.Select(rs => rs.Size).ToArray();
+                for (int j = 0; j < sizes.Length; j++)
+                {
+                    if (resolutions[j] == null)
+                        sizes[j] = "N/A";
+                }
+
+                videoControlValues.Add((true, 1, video.Title, video.Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray()));
             }
 
             return videoControlValues.ToArray();
@@ -99,6 +130,18 @@ namespace YoutubeDownloader
             panelAudioOnly.Visible = audioOnlyButton.Checked;
         }
 
+        void UpdateSizeLabel(int selectedIndex, string[] sizes, Label sizeLabel)
+        {
+            string correspondingSize = "N/A";
+
+            if (sizes != null && selectedIndex >= 0 && selectedIndex < sizes.Length)
+            {
+                correspondingSize = sizes[selectedIndex];
+            }
+
+            sizeLabel.Text = correspondingSize;
+
+        }
 
         private void UpdateProgress(int value)
         {
@@ -119,7 +162,7 @@ namespace YoutubeDownloader
             videoControlValues.Clear();
         }
 
-        private void UpdatePanel((bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution)[] videos)
+        private void UpdatePanel((bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes)[] videos)
         {
             Color oddColor = Color.FromArgb(250, 250, 250); // Light grey for odd entries
             Color evenColor = Color.FromArgb(220, 220, 220); // Slightly darker grey for even entries
@@ -166,7 +209,7 @@ namespace YoutubeDownloader
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = 300,
+                    Width = 250,
                     Text = video.Title,
                     BackColor = white
                 };
@@ -175,7 +218,7 @@ namespace YoutubeDownloader
                 // Thumbnail (PictureBox)
                 PictureBox pictureBox = new PictureBox
                 {
-                    Location = new Point(380, 25),
+                    Location = new Point(330, 25),
                     Size = new Size(50, 50),
                     ImageLocation = video.Thumbnail, // TODO - Use actual thumbnail path
                     //Image = thumbnailImage,
@@ -187,7 +230,7 @@ namespace YoutubeDownloader
                 // Resolution (ComboBox)
                 ComboBox resolutionComboBox = new ComboBox
                 {
-                    Location = new Point(460, 25),
+                    Location = new Point(400, 25),
                     Width = 55,
                     DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = white
@@ -195,7 +238,7 @@ namespace YoutubeDownloader
 
                 // Add unique resolution options for each video
                 resolutionComboBox.Items.AddRange(video.Resolutions);
-
+                
                 // Select the appropriate resolution
                 if (video.SelectedResolution != null && Array.Exists(video.Resolutions, res => res == video.SelectedResolution))
                 {
@@ -209,6 +252,42 @@ namespace YoutubeDownloader
 
                 videoPanel.Controls.Add(resolutionComboBox);
 
+                // Get the index of the selected resolution
+                int selectedIndex = resolutionComboBox.SelectedIndex;
+                string correspondingSize = "N/A";
+
+                if (selectedIndex >= 0 && selectedIndex < video.Sizes.Length)
+                {
+                    correspondingSize = video.Sizes[selectedIndex];
+                }
+
+                // Size (Label)
+                Label sizeLabel = new Label
+                {
+                    Location = new Point(460, 27),
+                    Text = correspondingSize,
+                    AutoSize = true,
+                    BackColor = backgroundColor
+                };
+
+                // Update the Label initially
+                UpdateSizeLabel(resolutionComboBox.SelectedIndex, video.Sizes, sizeLabel);
+
+
+                videoPanel.Controls.Add(sizeLabel);
+
+                // Handle the SelectedIndexChanged event
+                resolutionComboBox.SelectedIndexChanged += (sender, e) =>
+                {
+                    if (sender is ComboBox comboBox)
+                    {
+                        UpdateSizeLabel(comboBox.SelectedIndex, video.Sizes, sizeLabel);
+                    }
+                    //ComboBox comboBox = sender as ComboBox;
+                    //UpdateSizeLabel(comboBox.SelectedIndex, video.Sizes, sizeLabel);
+                };
+
+
                 // Store control references
                 videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox));
             }
@@ -221,7 +300,7 @@ namespace YoutubeDownloader
         }
 
         static void downloadAudioOnly(string URL, string downloadPath)
-        {  }
+        { }
 
         private async void fetchButton_Click(object sender, EventArgs e)
         {
