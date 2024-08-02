@@ -43,16 +43,15 @@
             label7 = new Label();
             label8 = new Label();
             label9 = new Label();
-            label10 = new Label();
             label11 = new Label();
             label12 = new Label();
             scrollablePanel = new Panel();
             panelAudioOnly = new Panel();
             label14 = new Label();
             progressBar = new ProgressBar();
+            ffmpegConvertBar = new ProgressBar();
             fetchButton = new Button();
             label13 = new Label();
-            scrollablePanel.SuspendLayout();
             panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
@@ -67,9 +66,9 @@
             // downloadButton
             // 
             downloadButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            downloadButton.Location = new Point(250, 546);
+            downloadButton.Location = new Point(240, 546);
             downloadButton.Name = "downloadButton";
-            downloadButton.Size = new Size(100, 40);
+            downloadButton.Size = new Size(120, 40);
             downloadButton.TabIndex = 1;
             downloadButton.Text = "DOWNLOAD";
             downloadButton.UseVisualStyleBackColor = true;
@@ -205,16 +204,6 @@
             label9.TabIndex = 10;
             label9.Text = "Get";
             // 
-            // label10
-            // 
-            label10.AutoSize = true;
-            label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.Location = new Point(340, 202);
-            label10.Name = "label10";
-            label10.Size = new Size(65, 15);
-            label10.TabIndex = 11;
-            label10.Text = "Thumbnail";
-            // 
             // label11
             // 
             label11.AutoSize = true;
@@ -239,7 +228,6 @@
             // 
             scrollablePanel.AutoScroll = true;
             scrollablePanel.BackColor = SystemColors.Control;
-            scrollablePanel.Controls.Add(panelAudioOnly);
             scrollablePanel.Location = new Point(20, 217);
             scrollablePanel.Name = "scrollablePanel";
             scrollablePanel.Size = new Size(550, 300);
@@ -248,9 +236,9 @@
             // panelAudioOnly
             // 
             panelAudioOnly.Controls.Add(label14);
-            panelAudioOnly.Location = new Point(100, 14);
+            panelAudioOnly.Location = new Point(421, 201);
             panelAudioOnly.Name = "panelAudioOnly";
-            panelAudioOnly.Size = new Size(125, 315);
+            panelAudioOnly.Size = new Size(132, 315);
             panelAudioOnly.TabIndex = 19;
             // 
             // label14
@@ -269,6 +257,13 @@
             progressBar.Name = "progressBar";
             progressBar.Size = new Size(350, 23);
             progressBar.TabIndex = 0;
+            // 
+            // ffmpegConvertBar
+            // 
+            ffmpegConvertBar.Location = new Point(120, 2);
+            ffmpegConvertBar.Name = "ffmpegConvertBar";
+            ffmpegConvertBar.Size = new Size(350, 23);
+            ffmpegConvertBar.TabIndex = 0;
             // 
             // fetchButton
             // 
@@ -296,14 +291,15 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(panelAudioOnly);
             Controls.Add(label13);
             Controls.Add(progressBar);
+            Controls.Add(ffmpegConvertBar);
             Controls.Add(label3);
             Controls.Add(fetchButton);
             Controls.Add(scrollablePanel);
             Controls.Add(label12);
             Controls.Add(label9);
-            Controls.Add(label10);
             Controls.Add(label11);
             Controls.Add(label8);
             Controls.Add(label7);
@@ -320,7 +316,6 @@
             Controls.Add(youtubeURLTextBox);
             Name = "Form1";
             Text = "YoutubeDownloader";
-            scrollablePanel.ResumeLayout(false);
             panelAudioOnly.ResumeLayout(false);
             panelAudioOnly.PerformLayout();
             ResumeLayout(false);
@@ -344,13 +339,13 @@
         private Label label7;
         private Label label8;
         private Label label9;
-        private Label label10;
         private Label label11;
         private Label label12;
         private Panel scrollablePanel;
         private Panel panelAudioOnly;
         private Button fetchButton;
         private ProgressBar progressBar;
+        private ProgressBar ffmpegConvertBar;
         private Label label13;
         private Label label14;
     }

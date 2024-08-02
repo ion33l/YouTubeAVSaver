@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="VideoLibrary" Version="3.2.4" />
-    <PackageReference Include="YouTubeExplode" Version="6.3.16" />
+    <PackageReference Include="VideoLibrary" Version="3.2.5" />
+    <PackageReference Include="YouTubeExplode" Version="6.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +26,16 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\FFmpeg\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\FFmpeg\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
