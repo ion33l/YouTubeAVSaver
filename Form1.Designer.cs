@@ -32,6 +32,7 @@
             downloadButton = new Button();
             txtFolderPath = new TextBox();
             browseButton = new Button();
+            cancelButton = new Button();
             videoAndAudioButton = new RadioButton();
             audioOnlyButton = new RadioButton();
             label1 = new Label();
@@ -90,6 +91,17 @@
             browseButton.Text = "Browse";
             browseButton.UseVisualStyleBackColor = true;
             browseButton.Click += browseButton_Click;
+            // 
+            // cancelButton
+            // 
+            cancelButton.Location = new Point(486, 2);
+            cancelButton.Name = "cancelButton";
+            cancelButton.Size = new Size(75, 23);
+            cancelButton.TabIndex = 3;
+            cancelButton.Text = "Cancel";
+            cancelButton.UseVisualStyleBackColor = true;
+            cancelButton.Hide();
+            cancelButton.Click += cancelButton_Click;
             // 
             // videoAndAudioButton
             // 
@@ -311,6 +323,7 @@
             Controls.Add(audioOnlyButton);
             Controls.Add(videoAndAudioButton);
             Controls.Add(browseButton);
+            Controls.Add(cancelButton);
             Controls.Add(txtFolderPath);
             Controls.Add(downloadButton);
             Controls.Add(youtubeURLTextBox);
@@ -325,9 +338,10 @@
         #endregion
 
         private TextBox youtubeURLTextBox;
-        private Button downloadButton;
         private TextBox txtFolderPath;
+        private Button downloadButton;
         private Button browseButton;
+        private Button cancelButton;
         private RadioButton videoAndAudioButton;
         private RadioButton audioOnlyButton;
         private Label label1;

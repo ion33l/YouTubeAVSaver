@@ -5,12 +5,14 @@ using YoutubeExplode.Common;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 using System.Diagnostics;
+using System.Threading;
 
 namespace YoutubeDownloader
 {
     public partial class Form1 : Form
     {
         public YoutubeClient ytClient;
+        private CancellationTokenSource cancellationTokenSource;
         private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)> videoControlValues =
                 new List<(bool, int, string, string, string[], string, string[], string)>();
         private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, string url)> videoControlReferences =
@@ -22,6 +24,7 @@ namespace YoutubeDownloader
             panelAudioOnly.Visible = false;
             progressBar.Visible = false;
             ffmpegConvertBar.Visible = false;
+            cancellationTokenSource = new CancellationTokenSource();
         }
         private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -83,7 +86,7 @@ namespace YoutubeDownloader
                                             .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
                                             .Select(s => new {
                                                 Resolution = s.VideoQuality.Label,
-                                                videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0)).ToString("0.##") + " MB"
+                                                videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
                                             })
                                             .ToList();
 
@@ -222,7 +225,7 @@ namespace YoutubeDownloader
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = 250,
+                    Width = 330,
                     Text = video.Title,
                     BackColor = white
                 };
@@ -238,7 +241,7 @@ namespace YoutubeDownloader
                     SizeMode = PictureBoxSizeMode.StretchImage,
                     BackColor = backgroundColor
                 };
-                videoPanel.Controls.Add(pictureBox);
+                //videoPanel.Controls.Add(pictureBox);
 
                 // Resolution (ComboBox)
                 ComboBox resolutionComboBox = new ComboBox
@@ -330,6 +333,49 @@ namespace YoutubeDownloader
                 ffmpegConvertBar.Visible = false;
             }
         }
+        public void showProgressBarAndOthers(bool show, string textBoxText)
+        {
+            if (show)
+            {
+                cancellationTokenSource = new CancellationTokenSource();
+                progressBar.Visible = true;
+                cancelButton.Show();
+                downloadButton.Enabled = false;
+                browseButton.Enabled = false;
+                fetchButton.Enabled = false;
+            }
+            else
+            {
+                cancellationTokenSource = null;
+                progressBar.Visible = false;
+                cancelButton.Hide();
+                downloadButton.Enabled = true;
+                browseButton.Enabled = true;
+                fetchButton.Enabled = true;
+            }
+        }
+        public async Task CopyToAsyncWithProgress(Stream videoStream, Stream fileStream, IProgress<double> progress, CancellationToken cancellationToken)
+        {
+            // Assuming videoStream has a Length property that indicates total size.
+            // This might not always be the case; if not, additional logic is needed.
+            var totalBytes = videoStream.Length;
+            var buffer = new byte[81920]; // 80 KB buffer
+            int bytesRead;
+            long totalBytesRead = 0;
+
+            while ((bytesRead = await videoStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            {
+                await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                totalBytesRead += bytesRead;
+
+                // Report progress if progress is not null and totalBytes is available
+                if (progress != null && totalBytes > 0)
+                {
+                    var progressPercentage = (double)totalBytesRead / totalBytes * 100;
+                    progress.Report(progressPercentage);
+                }
+            }
+        }
 
         private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
         {
@@ -369,14 +415,19 @@ namespace YoutubeDownloader
 
         async void downloadAudioVideo(string URL, string downloadPath)
         {
+            progressBar.Value = 0;
+            var progress = new Progress<double>(percent =>
+            {
+                // Update the progress bar value
+                progressBar.Value = (int)percent;
+            });
+
             foreach (var videoControl in videoControlReferences)
             {
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
-              
                     // Check if the CheckBox is checked
                 if (checkBox.Checked)
                 {
-                    progressBar.Visible = true;
 
                     var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
                     var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
@@ -395,27 +446,71 @@ namespace YoutubeDownloader
 
                     if (videoStreamInfo != null && audioStreamInfo != null)
                     {
-                        var videoTempPath =  Path.Combine(downloadPath, $"video.{videoStreamInfo.Container.Name}");
-                        var audioTempPath =  Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
-
+                        var videoTempPath = Path.Combine(downloadPath, $"video.{videoStreamInfo.Container.Name}");
                         var videoStream = await ytClient.Videos.Streams.GetAsync(streamInfo: videoStreamInfo);
+
+                        try
+                        {
+                            showProgressBarAndOthers(true, "[1/3]: Video Download");
+                            using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
+                            {
+                                //await videoStream.CopyToAsync(fileStream);
+                                await CopyToAsyncWithProgress(videoStream, fileStream, progress, cancellationTokenSource.Token);
+                            }
+                            showProgressBarAndOthers(false, "");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            MessageBox.Show("Download was cancelled.");
+                            showProgressBarAndOthers(false, "");
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                            showProgressBarAndOthers(false, "");
+                            return;
+                        }
+
+                        var audioTempPath = Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
                         var audioStream = await ytClient.Videos.Streams.GetAsync(streamInfo: audioStreamInfo);
 
-                        using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
+                        try
                         {
-                            await videoStream.CopyToAsync(fileStream);
+                            showProgressBarAndOthers(true, "[2/3]: Audio Download");
+                            using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
+                            {
+                                //await audioStream.CopyToAsync(fileStream);
+                                await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource.Token);
+                            }
+                            showProgressBarAndOthers(false, "");
                         }
-                        using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
+                        catch (OperationCanceledException)
                         {
-                            await audioStream.CopyToAsync(fileStream);
+                            MessageBox.Show("Download was cancelled.");
+                            showProgressBarAndOthers(false, "");
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                            showProgressBarAndOthers(false, "");
+                            return;
                         }
 
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
                         progressBar.Visible = false;
                         // Clean up temporary files
-                        //File.Delete(videoTempPath);
-                        //File.Delete(audioTempPath);
+                        try 
+                        {
+                            File.Delete(videoTempPath);
+                            File.Delete(audioTempPath);
+                        }
+                        catch
+                        {
+                            MessageBox.Show("Couldn't delete the temporary files.");
+                        }
                     }
                 }
             }
@@ -439,6 +534,7 @@ namespace YoutubeDownloader
 
                     var audioStreamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
                     if (audioStreamInfo != null) {
+
                         var audioTempPath = Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
                         var audioStream = await ytClient.Videos.Streams.GetAsync(streamInfo: audioStreamInfo);
 
@@ -492,6 +588,10 @@ namespace YoutubeDownloader
                     txtFolderPath.Text = folderBrowserDialog.SelectedPath;
                 }
             }
+        }
+        private void cancelButton_Click(object sender, EventArgs e)
+        {
+            cancellationTokenSource?.Cancel();
         }
 
         private void downloadButton_Click(object sender, EventArgs e)
