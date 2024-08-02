@@ -1,11 +1,11 @@
 TODOs:
 
-x 1) Show thumbnails in the main panel
-v 2) Show size in the main panel
-x 3) Download buttons
+1) Progress bar for downloading audio/video and another one for converting to mp4..
+2) Tags for downloading an audio playlist that is confirmed by user to be an album.
+3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
+4) remove thumbnails
 
 x 4) Optional: Adaptive menu (for the case when maximize is done)
-
 
 
 
