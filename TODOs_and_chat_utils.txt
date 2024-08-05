@@ -1,6 +1,7 @@
 TODOs:
 
-1) Progress bar for converting to mp3or mp4 (inter thread communication..)
+0) Quality bar that contains resolution and codec name.
+1) Progress bar for converting to mp3 or mp4 (inter-process communication..)
 2) Tags for downloading an audio playlist that is confirmed by user to be an album.
 3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
 4) 1080p60 doesn't download that actual stream

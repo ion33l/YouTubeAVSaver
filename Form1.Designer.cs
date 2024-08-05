@@ -53,6 +53,7 @@
             ffmpegConvertBar = new ProgressBar();
             fetchButton = new Button();
             label13 = new Label();
+            labelOperation = new Label();
             panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
@@ -100,7 +101,6 @@
             cancelButton.TabIndex = 3;
             cancelButton.Text = "Cancel";
             cancelButton.UseVisualStyleBackColor = true;
-            cancelButton.Hide();
             cancelButton.Click += cancelButton_Click;
             // 
             // videoAndAudioButton
@@ -298,11 +298,21 @@
             label13.TabIndex = 19;
             label13.Text = "Size";
             // 
+            // labelOperation
+            // 
+            labelOperation.AutoSize = true;
+            labelOperation.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelOperation.Location = new Point(7, 9);
+            labelOperation.Name = "labelOperation";
+            labelOperation.Size = new Size(0, 15);
+            labelOperation.TabIndex = 20;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(labelOperation);
             Controls.Add(panelAudioOnly);
             Controls.Add(label13);
             Controls.Add(progressBar);
@@ -362,5 +372,6 @@
         private ProgressBar ffmpegConvertBar;
         private Label label13;
         private Label label14;
+        private Label labelOperation;
     }
 }

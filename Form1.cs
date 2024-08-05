@@ -21,6 +21,7 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
             ytClient = new YoutubeClient();
+            cancelButton.Hide();
             panelAudioOnly.Visible = false;
             progressBar.Visible = false;
             ffmpegConvertBar.Visible = false;
@@ -225,7 +226,7 @@ namespace YoutubeDownloader
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = 330,
+                    Width = 340,
                     Text = video.Title,
                     BackColor = white
                 };
@@ -337,6 +338,7 @@ namespace YoutubeDownloader
         {
             if (show)
             {
+                labelOperation.Text = textBoxText;
                 cancellationTokenSource = new CancellationTokenSource();
                 progressBar.Visible = true;
                 cancelButton.Show();
@@ -346,6 +348,7 @@ namespace YoutubeDownloader
             }
             else
             {
+                labelOperation.Text = "";
                 cancellationTokenSource = null;
                 progressBar.Visible = false;
                 cancelButton.Hide();
@@ -428,7 +431,6 @@ namespace YoutubeDownloader
                     // Check if the CheckBox is checked
                 if (checkBox.Checked)
                 {
-
                     var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
                     var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                     string selectedResolution = resolutionComboBox.SelectedItem?.ToString() ?? "default_resolution";
@@ -451,7 +453,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "[1/3]: Video Download");
+                            showProgressBarAndOthers(true, "1: Video Download");
                             using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
                             {
                                 //await videoStream.CopyToAsync(fileStream);
@@ -477,7 +479,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "[2/3]: Audio Download");
+                            showProgressBarAndOthers(true, "2: Audio Download");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
                                 //await audioStream.CopyToAsync(fileStream);
