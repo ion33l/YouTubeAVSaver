@@ -248,9 +248,9 @@
             // panelAudioOnly
             // 
             panelAudioOnly.Controls.Add(label14);
-            panelAudioOnly.Location = new Point(421, 201);
+            panelAudioOnly.Location = new Point(420, 201);
             panelAudioOnly.Name = "panelAudioOnly";
-            panelAudioOnly.Size = new Size(132, 315);
+            panelAudioOnly.Size = new Size(133, 315);
             panelAudioOnly.TabIndex = 19;
             // 
             // label14

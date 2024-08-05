@@ -4,8 +4,11 @@ using YoutubeExplode;
 using YoutubeExplode.Common;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
+
 using System.Diagnostics;
 using System.Threading;
+using Newtonsoft.Json.Linq;
+using System;
 
 namespace YoutubeDownloader
 {
@@ -17,6 +20,8 @@ namespace YoutubeDownloader
                 new List<(bool, int, string, string, string[], string, string[], string)>();
         private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, string url)> videoControlReferences =
             new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, string)>();
+        private Progress<ProgressInfo> progressReporter;
+        string totalDuration = "";
         public Form1()
         {
             InitializeComponent();
@@ -26,6 +31,16 @@ namespace YoutubeDownloader
             progressBar.Visible = false;
             ffmpegConvertBar.Visible = false;
             cancellationTokenSource = new CancellationTokenSource();
+            progressReporter = new Progress<ProgressInfo>(info =>
+            {
+                progressBar.Value = info.Value;
+                progressBar.Visible = info.Visible;
+            });
+        }
+        private struct ProgressInfo
+        {
+            public int Value { get; set; }
+            public bool Visible { get; set; }
         }
         private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -82,7 +97,7 @@ namespace YoutubeDownloader
                                             .SingleOrDefault();
 
                     var resolutionSizeList = videoStreams
-                                            .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                                            //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                             .OrderByDescending(s => s.VideoQuality)
                                             .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
                                             .Select(s => new {
@@ -120,7 +135,7 @@ namespace YoutubeDownloader
                                         .SingleOrDefault();
 
                 var resolutionSizeList = videoStreams
-                                        .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                                        //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                         .OrderByDescending(s => s.VideoQuality)
                                         .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
                                         .Select(s => new {
@@ -226,7 +241,7 @@ namespace YoutubeDownloader
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = 340,
+                    Width = 330,
                     Text = video.Title,
                     BackColor = white
                 };
@@ -242,13 +257,13 @@ namespace YoutubeDownloader
                     SizeMode = PictureBoxSizeMode.StretchImage,
                     BackColor = backgroundColor
                 };
-                //videoPanel.Controls.Add(pictureBox);
+                //videoPanel.Controls.Add(pictureBox); //decided not to show thumnails because of its overhead
 
                 // Resolution (ComboBox)
                 ComboBox resolutionComboBox = new ComboBox
                 {
-                    Location = new Point(400, 25),
-                    Width = 55,
+                    Location = new Point(390, 25),
+                    Width = 67,
                     DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = white
                 };
@@ -312,26 +327,30 @@ namespace YoutubeDownloader
         {
             if (e.Data == null) return;
 
-            // Example of parsing the time value from the ffmpeg output
-            // The actual output string format may vary
             string output = e.Data;
-            if (output.Contains("time="))
+            string timeString = "";
+            if (output.StartsWith("  Duration"))
             {
-                ffmpegConvertBar.Visible = true;
-                // Parse the 'time=' field, example: "time=00:01:23.45"
-                string timeString = output.Substring(output.IndexOf("time=") + 5, 11);
-                TimeSpan currentTime = TimeSpan.Parse(timeString);
+                totalDuration = output.Substring(12, 11);
+            }
+            if (!string.IsNullOrEmpty(totalDuration))
+            {
+                if (output.Contains("time="))
+                { 
+                    timeString = output.Substring(output.IndexOf("time=") + 5, 11);
 
-                // Assuming you know the total duration (for example, 2 minutes = 120 seconds)
-                TimeSpan totalDuration = new TimeSpan(0, 2, 0);
-
-                // Calculate the progress percentage
-                int progressPercentage = (int)(currentTime.TotalSeconds / totalDuration.TotalSeconds * 100);
-
-                // Update the progress bar (must be done on the UI thread)
-                ffmpegConvertBar.Invoke(new Action(() => ffmpegConvertBar.Value = progressPercentage));
-                //ffmpegConvertBar.Invoke((MethodInvoker)(() => ffmpegConvertBar.Value = progressPercentage));
-                ffmpegConvertBar.Visible = false;
+                    try
+                    {
+                        TimeSpan currentTime = TimeSpan.Parse(timeString);
+                        TimeSpan totalDurationTime = TimeSpan.Parse(totalDuration);
+                        int progressPercentage = (int)(currentTime.TotalSeconds / totalDurationTime.TotalSeconds * 100);
+                        ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = progressPercentage, Visible = true });
+                    }
+                    catch
+                    {
+                        ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 100, Visible = false });
+                    }
+                }
             }
         }
         public void showProgressBarAndOthers(bool show, string textBoxText)
@@ -359,8 +378,6 @@ namespace YoutubeDownloader
         }
         public async Task CopyToAsyncWithProgress(Stream videoStream, Stream fileStream, IProgress<double> progress, CancellationToken cancellationToken)
         {
-            // Assuming videoStream has a Length property that indicates total size.
-            // This might not always be the case; if not, additional logic is needed.
             var totalBytes = videoStream.Length;
             var buffer = new byte[81920]; // 80 KB buffer
             int bytesRead;
@@ -382,6 +399,11 @@ namespace YoutubeDownloader
 
         private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
         {
+            totalDuration = "";
+            ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
+
+            var token = cancellationTokenSource.Token;
+
             return Task.Run(() =>
             {
                 //var ffmpegPath = @"C:\Program Files\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"; 
@@ -404,16 +426,22 @@ namespace YoutubeDownloader
 
                 using (var process = new Process { StartInfo = startInfo })
                 {
-                    process.OutputDataReceived += (sender, e) => Console.WriteLine(e.Data);
-                    process.ErrorDataReceived += (sender, e) => Console.WriteLine("ERROR: " + e.Data);
-                    //process.ErrorDataReceived += new DataReceivedEventHandler(OnDataReceived);
-                    //process.ErrorDataReceived += OnDataReceived;
+                    process.ErrorDataReceived += new DataReceivedEventHandler(OnDataReceived);
                     process.Start();
                     process.BeginOutputReadLine();
                     process.BeginErrorReadLine();
-                    process.WaitForExit();
+                    //process.WaitForExit();
+
+                    while (!process.WaitForExit(100))
+                    {
+                        if (token.IsCancellationRequested)
+                        {
+                            process.Kill();
+                            break;
+                        }
+                    }
                 }
-            });
+            }, token);
         }
 
         async void downloadAudioVideo(string URL, string downloadPath)
@@ -500,9 +528,13 @@ namespace YoutubeDownloader
                             return;
                         }
 
+                        showProgressBarAndOthers(true, "3: Convert to mp4");
+
+                        
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
-                        progressBar.Visible = false;
+                        showProgressBarAndOthers(false, "");
+
                         // Clean up temporary files
                         try 
                         {
@@ -520,6 +552,13 @@ namespace YoutubeDownloader
 
         async void downloadAudioOnly(string URL, string downloadPath)
         {
+            progressBar.Value = 0;
+            var progress = new Progress<double>(percent =>
+            {
+                // Update the progress bar value
+                progressBar.Value = (int)percent;
+            });
+
             foreach (var videoControl in videoControlReferences)
             {
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
@@ -540,11 +579,34 @@ namespace YoutubeDownloader
                         var audioTempPath = Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
                         var audioStream = await ytClient.Videos.Streams.GetAsync(streamInfo: audioStreamInfo);
 
-                        using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
+                        try
                         {
-                            await audioStream.CopyToAsync(fileStream);
+                            showProgressBarAndOthers(true, "2: Audio Download");
+                            using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
+                            {
+                                //await audioStream.CopyToAsync(fileStream);
+                                await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource.Token);
+                            }
+                            showProgressBarAndOthers(false, "");
                         }
+                        catch (OperationCanceledException)
+                        {
+                            MessageBox.Show("Download was cancelled.");
+                            showProgressBarAndOthers(false, "");
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                            showProgressBarAndOthers(false, "");
+                            return;
+                        }
+                        showProgressBarAndOthers(true, "2: Convert to mp3");
+
                         await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
+
+                        showProgressBarAndOthers(false, "");
+
                     }
 
                     // Clean up temporary files
