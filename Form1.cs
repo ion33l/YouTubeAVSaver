@@ -191,7 +191,6 @@ namespace YoutubeDownloader
         {
             scrollablePanel.Controls.Clear();
             videoControlReferences.Clear();
-
             videoControlValues.Clear();
         }
 
@@ -397,6 +396,69 @@ namespace YoutubeDownloader
             }
         }
 
+        public async Task<(string artist, string album, string year, string genre)> getTagsFromURL(string URL)
+        {
+            string artist = "",
+                   album = "",
+                   year = "",
+                   genre = "";
+            try
+            {
+                if (URL.Contains("playlist"))
+                {
+                    var playlist = await ytClient.Playlists.GetAsync(URL);
+                    var playlistVideos = await ytClient.Playlists.GetVideosAsync(playlist.Id);
+                    album = playlist.Title;
+
+                    var videoDetails = await ytClient.Videos.GetAsync(playlistVideos[0].Id);
+                    var parts = videoDetails.Title.Split(new[] { '-' }, 2);
+                    if (parts.Length == 2)
+                        artist = artist = parts[0].Trim();
+                    else
+                        artist = playlistVideos[0].Author.ToString();
+
+                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
+                    if (year == "")
+                        year = videoDetails.UploadDate.Year.ToString();
+                }
+                else
+                {
+
+                }
+            }
+            catch
+            {
+
+            }
+            return (artist, album, year, genre);
+        }
+
+        public void SetMp3Tags(string filePath, string trackNumber, string artist, string trackTitle, string album, string year, string genre)
+        {
+            try
+            {
+                using (var tagFile = TagLib.File.Create(filePath))
+                {
+                    var tag = (TagLib.Id3v2.Tag)tagFile.GetTag(TagLib.TagTypes.Id3v2, true);
+
+                    tag.Performers = new[] { artist };
+                    tag.Title = trackTitle;
+                    tag.Track = uint.Parse(trackNumber);
+                    tag.Album = album;
+                    tag.Year = uint.Parse(year);
+
+                    var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON"), TagLib.StringType.Latin1);
+                    genreFrame.Text = new[] { genre };
+                    tag.AddFrame(genreFrame);
+                    
+                    tagFile.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred when setting tags for {trackTitle}: {ex.Message}");
+            }
+        }
         private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
         {
             totalDuration = "";
@@ -552,12 +614,80 @@ namespace YoutubeDownloader
 
         async void downloadAudioOnly(string URL, string downloadPath)
         {
+            bool flagIsAlbum = false;
+            int itemsChecked = 0;
+            string  artist = "",
+                    album  = "",
+                    year   = "",
+                    genre  = "";
+
             progressBar.Value = 0;
             var progress = new Progress<double>(percent =>
             {
                 // Update the progress bar value
                 progressBar.Value = (int)percent;
             });
+
+            if (videoControlReferences.Count > 1)
+                foreach (var videoControl in videoControlReferences)
+                {
+                    var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
+                    if (checkBox.Checked)
+                        itemsChecked++;
+                }
+            
+            if (videoControlReferences.Count > 1 && itemsChecked >= 1)
+            {
+                DialogResult result = MessageBox.Show("Do the tracks belong to an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    flagIsAlbum = true;
+
+                    (artist, album, year, genre) = await getTagsFromURL(URL);
+
+                    using (var tagEditor = new TagEditorForm(artist, album, year, genre))
+                    {
+                        if (tagEditor.ShowDialog() == DialogResult.OK)
+                        {
+                            // Get the updated values
+                            artist = tagEditor.Artist;
+                            album = tagEditor.Album;
+                            year = tagEditor.Year;
+                            genre = tagEditor.Genre;
+                        }
+                    }
+
+                    //Create folders 
+                    string yearAlbumName = year + " - " + album;
+                    string artistFolderPath = Path.Combine(downloadPath, artist);
+                    string albumFolderPath = Path.Combine(artistFolderPath, yearAlbumName);
+                    try
+                    {
+                        // Create artist folder if it doesn't exist
+                        if (!Directory.Exists(artistFolderPath))
+                        {
+                            Directory.CreateDirectory(artistFolderPath);
+                        }
+
+                        // Create album folder if it doesn't exist
+                        if (!Directory.Exists(albumFolderPath))
+                        {
+                            Directory.CreateDirectory(albumFolderPath);
+                        }
+
+                        downloadPath = albumFolderPath;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+
+                if (itemsChecked == 0)
+                {
+                    MessageBox.Show("Please check at least one item.");
+                }
+            }
 
             foreach (var videoControl in videoControlReferences)
             {
@@ -570,12 +700,18 @@ namespace YoutubeDownloader
                     var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                     string filename_raw = titleTextBox.Text;
                     string filename = new string(filename_raw.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
+                    string trackTitle = filename;
+                    if (noLabel.Text.Length <= 1)
+                        filename = "0" + noLabel.Text + ". " + filename;
+                    else
+                        filename = noLabel.Text + ". " + filename;
+
                     var filePath = Path.Combine(downloadPath, filename);
                     var outputFilePath = filePath + ".mp3";
 
                     var audioStreamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-                    if (audioStreamInfo != null) {
-
+                    if (audioStreamInfo != null)
+                    {
                         var audioTempPath = Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
                         var audioStream = await ytClient.Videos.Streams.GetAsync(streamInfo: audioStreamInfo);
 
@@ -607,14 +743,26 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(false, "");
 
-                    }
+                        if (flagIsAlbum)
+                        {
+                            SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
+                        }
 
-                    // Clean up temporary files
-                    //File.Delete(audioTempPath);
+                        // Clean up temporary files
+                        try
+                        {
+                            File.Delete(audioTempPath);
+                        }
+                        catch
+                        {
+                            MessageBox.Show("Couldn't delete the temporary files.");
+                        }
+                    }
                 }
             }
         }
 
+//Buttons
         private async void fetchButton_Click(object sender, EventArgs e)
         {
             var videoUrl = youtubeURLTextBox.Text;
@@ -633,13 +781,12 @@ namespace YoutubeDownloader
             downloadButton.Enabled = false;
 
             // Update the panel with new video data
-            UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
+                UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
 
             fetchButton.Text = originalText;
             fetchButton.Enabled = true;
             downloadButton.Enabled = true;
         }
-
         private void browseButton_Click(object sender, EventArgs e)
         {
             // Create a new instance of FolderBrowserDialog
@@ -657,7 +804,6 @@ namespace YoutubeDownloader
         {
             cancellationTokenSource?.Cancel();
         }
-
         private void downloadButton_Click(object sender, EventArgs e)
         {
             string originalText = downloadButton.Text;
