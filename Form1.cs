@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Text.RegularExpressions;
 
 namespace YoutubeDownloader
 {
@@ -100,7 +101,8 @@ namespace YoutubeDownloader
                                             //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                             .OrderByDescending(s => s.VideoQuality)
                                             .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
-                                            .Select(s => new {
+                                            .Select(s => new
+                                            {
                                                 Resolution = s.VideoQuality.Label,
                                                 videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
                                             })
@@ -138,9 +140,10 @@ namespace YoutubeDownloader
                                         //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                         .OrderByDescending(s => s.VideoQuality)
                                         .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
-                                        .Select(s => new {
+                                        .Select(s => new
+                                        {
                                             Resolution = s.VideoQuality.Label,
-                                            videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize)/ (1024.0 * 1024.0)).ToString("0.##") + " MB"
+                                            videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0)).ToString("0.##") + " MB"
                                         })
                                         .ToList();
 
@@ -269,7 +272,7 @@ namespace YoutubeDownloader
 
                 // Add unique resolution options for each video
                 resolutionComboBox.Items.AddRange(video.Resolutions);
-                
+
                 // Select the appropriate resolution
                 if (video.SelectedResolution != null && Array.Exists(video.Resolutions, res => res == video.SelectedResolution))
                 {
@@ -335,7 +338,7 @@ namespace YoutubeDownloader
             if (!string.IsNullOrEmpty(totalDuration))
             {
                 if (output.Contains("time="))
-                { 
+                {
                     timeString = output.Substring(output.IndexOf("time=") + 5, 11);
 
                     try
@@ -395,6 +398,82 @@ namespace YoutubeDownloader
                 }
             }
         }
+        private static TimeSpan ParseTime(string time)
+        {
+            // Split the time string into components
+            var parts = time.Split(':');
+            int hours = 0;
+            int minutes = 0;
+            int seconds = 0;
+
+            if (parts.Length == 2)
+            {
+                // Format: mm:ss
+                minutes = int.Parse(parts[0]);
+                seconds = int.Parse(parts[1]);
+            }
+            else if (parts.Length == 3)
+            {
+                // Format: hh:mm:ss
+                hours = int.Parse(parts[0]);
+                minutes = int.Parse(parts[1]);
+                seconds = int.Parse(parts[2]);
+            }
+
+            // Return the TimeSpan created with hours, minutes, and seconds
+            return new TimeSpan(hours, minutes, seconds);
+        }
+
+        public static List<SongSegment> getPartsFromDescription(string description, TimeSpan maxLength)
+        {
+            try
+            {
+                var segments = new List<SongSegment>();
+
+                // Split description into lines
+                var lines = description.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var line in lines)
+                {
+                    string pattern = @"(?<time>\d{1,2}:\d{2}(?::\d{2})?)\s*(?<title>.+)?|(?<title>.+?)\s*(?<time>\d{1,2}:\d{2}(?::\d{2})?)";
+                    var match = Regex.Match(line, pattern);
+
+                    if (match.Success)
+                    {
+                        string time = match.Groups["time"].Value;
+                        string title = match.Groups["title"].Value.Trim();
+                        title = title.Trim(' ', '-');
+
+                        var startTime = ParseTime(time);
+
+                        segments.Add(new SongSegment
+                        {
+                            StartTime = startTime,
+                            EndTime = TimeSpan.Zero, // Placeholder, to be determined later
+                            Title = title
+                        });
+                    }
+                }
+
+
+                // Calculate the end times
+                for (int i = 0; i < segments.Count - 1; i++)
+                {
+                    segments[i].EndTime = segments[i + 1].StartTime;
+                }
+                if (segments.Count > 0)
+                {
+                    segments[segments.Count - 1].EndTime = maxLength; // Last segment's end time is unknown
+                }
+
+                return segments;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return new List<SongSegment>();
+            }
+        }
 
         public async Task<(string artist, string album, string year, string genre)> getTagsFromURL(string URL)
         {
@@ -413,7 +492,7 @@ namespace YoutubeDownloader
                     var videoDetails = await ytClient.Videos.GetAsync(playlistVideos[0].Id);
                     var parts = videoDetails.Title.Split(new[] { '-' }, 2);
                     if (parts.Length == 2)
-                        artist = artist = parts[0].Trim();
+                        artist = parts[0].Trim();
                     else
                         artist = playlistVideos[0].Author.ToString();
 
@@ -423,7 +502,26 @@ namespace YoutubeDownloader
                 }
                 else
                 {
-
+                    var videoDetails = await ytClient.Videos.GetAsync(URL);
+                    var parts = videoDetails.Title.Split(new[] { '-' }, 2);
+                    if (parts.Length == 2)
+                    {
+                        artist = parts[0].Trim();
+                        album = parts[1].Trim();
+                        char[] stopChars = { '{', '}', '(', ')', '/', '[', ']', '-', '_', '?' };
+                        int index = 0;
+                        while (index < album.Length && !stopChars.Contains(album[index]))
+                        {
+                            index++;
+                        }
+                        album = album.Substring(0, index).Trim();
+                    }
+                    else
+                        artist = videoDetails.Author.ToString();
+                    /*TODO - refactor*/
+                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
+                    if (year == "")
+                        year = videoDetails.UploadDate.Year.ToString();
                 }
             }
             catch
@@ -431,6 +529,36 @@ namespace YoutubeDownloader
 
             }
             return (artist, album, year, genre);
+        }
+
+        string CreateAlbumFolders(string downloadPath, string artist, string album, string year)
+        {
+            //Create folders 
+            string yearAlbumName = year + " - " + album;
+            string artistFolderPath = Path.Combine(downloadPath, artist);
+            string albumFolderPath = Path.Combine(artistFolderPath, yearAlbumName);
+            try
+            {
+                // Create artist folder if it doesn't exist
+                if (!Directory.Exists(artistFolderPath))
+                {
+                    Directory.CreateDirectory(artistFolderPath);
+                }
+
+                // Create album folder if it doesn't exist
+                if (!Directory.Exists(albumFolderPath))
+                {
+                    Directory.CreateDirectory(albumFolderPath);
+                }
+
+                return albumFolderPath;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            return "";
         }
 
         public void SetMp3Tags(string filePath, string trackNumber, string artist, string trackTitle, string album, string year, string genre)
@@ -450,7 +578,7 @@ namespace YoutubeDownloader
                     var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON"), TagLib.StringType.Latin1);
                     genreFrame.Text = new[] { genre };
                     tag.AddFrame(genreFrame);
-                    
+
                     tagFile.Save();
                 }
             }
@@ -459,23 +587,18 @@ namespace YoutubeDownloader
                 MessageBox.Show($"An error occurred when setting tags for {trackTitle}: {ex.Message}");
             }
         }
-        private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
-        {
-            totalDuration = "";
-            ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
 
+        private Task ExecuteFFMpegCommand(string arguments)
+        {
+            cancellationTokenSource = new CancellationTokenSource();
             var token = cancellationTokenSource.Token;
+
 
             return Task.Run(() =>
             {
                 //var ffmpegPath = @"C:\Program Files\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"; 
                 var ffmpegPath = Path.Combine(Application.StartupPath, "Resources", "FFmpeg", "ffmpeg.exe");
-                string arguments;
-                if (audioAndVideo) 
-                    arguments = $"-y -i \"{videoPath}\" -i \"{audioPath}\" -c copy \"{outputPath}\"";
-                else
-                    arguments = $"-y -i \"{audioPath}\" -vn -c:a libmp3lame \"{outputPath}\"";
-                
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegPath,
@@ -503,7 +626,68 @@ namespace YoutubeDownloader
                         }
                     }
                 }
+
+                showProgressBarAndOthers(false, "");
+
             }, token);
+        }
+
+        private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
+        {
+            string arguments;
+            totalDuration = "";
+            ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
+
+            if (audioAndVideo)
+                arguments = $"-y -i \"{videoPath}\" -i \"{audioPath}\" -c copy \"{outputPath}\"";
+            else
+                arguments = $"-y -i \"{audioPath}\" -vn -c:a libmp3lame \"{outputPath}\"";
+
+            return ExecuteFFMpegCommand(arguments);
+        }
+
+        private string FormatTimeSpan(TimeSpan timeSpan)
+        {
+            return timeSpan.ToString(@"hh\:mm\:ss\.fff");
+        }
+
+        private List<string> splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory)
+        {
+            List<string> outputFiles = new List<string>();
+
+            try
+            {
+                for (int i = 0; i < segments.Count; i++)
+                {
+                    var segment = segments[i];
+                    TimeSpan duration = segment.EndTime - segment.StartTime;
+
+                    if (duration <= TimeSpan.Zero)
+                        break;
+
+                    string startTime = FormatTimeSpan(segment.StartTime);
+                    string durationString = FormatTimeSpan(duration);
+
+                    string trackNumber = (i + 1).ToString("D2");
+                    string sanitizedTitle = new string(segment.Title.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
+                    string outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
+                    string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
+
+                    // Build ffmpeg command arguments
+                    string arguments = $"-y -i \"{toSplitMP3FilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
+                    // Execute ffmpeg process
+                    ExecuteFFMpegCommand(arguments);
+                    // Add the output file path to the list
+                    outputFiles.Add(outputFilePath);
+                }
+                
+                return outputFiles;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                return new List<string>();
+            }
         }
 
         async void downloadAudioVideo(string URL, string downloadPath)
@@ -518,7 +702,7 @@ namespace YoutubeDownloader
             foreach (var videoControl in videoControlReferences)
             {
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
-                    // Check if the CheckBox is checked
+                // Check if the CheckBox is checked
                 if (checkBox.Checked)
                 {
                     var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
@@ -592,13 +776,13 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(true, "3: Convert to mp4");
 
-                        
+
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
                         showProgressBarAndOthers(false, "");
 
                         // Clean up temporary files
-                        try 
+                        try
                         {
                             File.Delete(videoTempPath);
                             File.Delete(audioTempPath);
@@ -614,12 +798,13 @@ namespace YoutubeDownloader
 
         async void downloadAudioOnly(string URL, string downloadPath)
         {
-            bool flagIsAlbum = false;
+            bool playlistIsAlbum = false;
+            bool itemIsAlbum = false;
             int itemsChecked = 0;
-            string  artist = "",
-                    album  = "",
-                    year   = "",
-                    genre  = "";
+            string artist = "",
+                    album = "",
+                    year = "",
+                    genre = "";
 
             progressBar.Value = 0;
             var progress = new Progress<double>(percent =>
@@ -635,13 +820,13 @@ namespace YoutubeDownloader
                     if (checkBox.Checked)
                         itemsChecked++;
                 }
-            
+
             if (videoControlReferences.Count > 1 && itemsChecked >= 1)
             {
                 DialogResult result = MessageBox.Show("Do the tracks belong to an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.Yes)
                 {
-                    flagIsAlbum = true;
+                    playlistIsAlbum = true;
 
                     (artist, album, year, genre) = await getTagsFromURL(URL);
 
@@ -657,30 +842,10 @@ namespace YoutubeDownloader
                         }
                     }
 
-                    //Create folders 
-                    string yearAlbumName = year + " - " + album;
-                    string artistFolderPath = Path.Combine(downloadPath, artist);
-                    string albumFolderPath = Path.Combine(artistFolderPath, yearAlbumName);
-                    try
-                    {
-                        // Create artist folder if it doesn't exist
-                        if (!Directory.Exists(artistFolderPath))
-                        {
-                            Directory.CreateDirectory(artistFolderPath);
-                        }
+                    string albumFolderPath = CreateAlbumFolders(downloadPath, artist, album, year);
 
-                        // Create album folder if it doesn't exist
-                        if (!Directory.Exists(albumFolderPath))
-                        {
-                            Directory.CreateDirectory(albumFolderPath);
-                        }
-
+                    if (albumFolderPath != null)
                         downloadPath = albumFolderPath;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
                 }
 
                 if (itemsChecked == 0)
@@ -691,6 +856,7 @@ namespace YoutubeDownloader
 
             foreach (var videoControl in videoControlReferences)
             {
+                itemIsAlbum = false;
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
 
                 // Check if the CheckBox is checked
@@ -717,10 +883,10 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "2: Audio Download");
+                            showProgressBarAndOthers(true, "1: Audio Download");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
-                                //await audioStream.CopyToAsync(fileStream);
+
                                 await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource.Token);
                             }
                             showProgressBarAndOthers(false, "");
@@ -743,11 +909,70 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(false, "");
 
-                        if (flagIsAlbum)
+                        if (playlistIsAlbum)
                         {
                             SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
                         }
 
+                        var videoDetails = await ytClient.Videos.GetAsync(url);
+
+                        if (videoDetails.Duration.Value.Minutes >= 15)
+                        {
+                            DialogResult result = MessageBox.Show("This is file pretty long. Is this item an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                            
+                            if (result == DialogResult.Yes)
+                            {
+                                itemIsAlbum = true;
+
+                                (artist, album, year, genre) = await getTagsFromURL(url);
+
+                                using (var tagEditor = new TagEditorForm(artist, album, year, genre))
+                                {
+                                    if (tagEditor.ShowDialog() == DialogResult.OK)
+                                    {
+                                        // Get the updated values
+                                        artist = tagEditor.Artist;
+                                        album = tagEditor.Album;
+                                        year = tagEditor.Year;
+                                        genre = tagEditor.Genre;
+                                    }
+                                }
+
+                                string albumFolderPath = CreateAlbumFolders(downloadPath, artist, album, year);
+
+                                if (albumFolderPath != null)
+                                    downloadPath = albumFolderPath;
+
+                                TimeSpan duration = videoDetails.Duration.Value;
+
+                                var segments = getPartsFromDescription(videoDetails.Description, duration);
+                                
+                                using (var form = new SplitterForm(segments))
+                                {
+                                    if (form.ShowDialog() == DialogResult.OK)
+                                    {
+                                        segments = form.SongSegments;
+                                    }
+                                }
+
+                                showProgressBarAndOthers(true, "3: Split tracks");
+
+                                List<string> songPathList = splitMP3File(outputFilePath, segments, downloadPath);
+                                     //function definition: splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory)
+
+                                showProgressBarAndOthers(false, "");
+
+                                int index = 0;
+                                foreach (string songPath in songPathList)
+                                {
+                                    string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(Path.GetFileName(songPath));
+                                    string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
+                                    index ++;
+                                    Thread.Sleep(200); //delay for writing of the file to complete
+                                    SetMp3Tags(songPath, index.ToString(), artist, title, album, year, genre);
+                                }
+                            }
+                        }
                         // Clean up temporary files
                         try
                         {
@@ -780,8 +1005,24 @@ namespace YoutubeDownloader
             fetchButton.Enabled = false;
             downloadButton.Enabled = false;
 
+            //Check the link or the internet connection
+            bool isSingleValidURL = false;
+            bool isPlayListValidURL = false;
+
+            try { isSingleValidURL = await ytClient.Videos.GetAsync(videoUrl) != null; } catch { }
+            try { isPlayListValidURL = await ytClient.Playlists.GetAsync(videoUrl) != null; } catch { }
+            
+            if (!(isSingleValidURL || isPlayListValidURL))
+            {
+                MessageBox.Show("Problems with this link. Check the URL or the internet connection", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                fetchButton.Text = originalText;
+                fetchButton.Enabled = true;
+                downloadButton.Enabled = true;
+                return;
+            }
+
             // Update the panel with new video data
-                UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
+            UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
 
             fetchButton.Text = originalText;
             fetchButton.Enabled = true;
@@ -834,7 +1075,6 @@ namespace YoutubeDownloader
                 downloadAudioVideo(videoUrl, downloadPath);
 
                 //MessageBox.Show("Video download initiated.", "Download", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
             }
             else if (audioOnlyButton.Checked)
             {
@@ -849,7 +1089,30 @@ namespace YoutubeDownloader
 
             downloadButton.Text = originalText;
             downloadButton.Enabled = true;
+        }
 
+        private void buttonClearText_Click(object sender, EventArgs e)
+        {
+            // Get the search string from the search TextBox
+            string searchString = textBoxSearch.Text;
+
+            // Loop through all controls in the scrollable panel
+            foreach (Control videoPanel in scrollablePanel.Controls)
+            {
+                // Ensure the control is a Panel (which should be your videoPanel)
+                if (videoPanel is Panel)
+                {
+                    // Find the titleTextBox within this videoPanel
+                    foreach (Control control in videoPanel.Controls)
+                    {
+                        if (control is TextBox titleTextBox)
+                        {
+                            // Replace the search string with an empty string in the titleTextBox
+                            titleTextBox.Text = titleTextBox.Text.Replace(searchString, string.Empty);
+                        }
+                    }
+                }
+            }
         }
     }
 }

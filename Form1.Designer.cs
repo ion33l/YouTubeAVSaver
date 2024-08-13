@@ -54,6 +54,9 @@
             fetchButton = new Button();
             label13 = new Label();
             labelOperation = new Label();
+            label10 = new Label();
+            textBoxSearch = new TextBox();
+            buttonClearText = new Button();
             panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
@@ -307,11 +310,41 @@
             labelOperation.Size = new Size(0, 15);
             labelOperation.TabIndex = 20;
             // 
+            // label10
+            // 
+            label10.AutoSize = true;
+            label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label10.Location = new Point(2, 176);
+            label10.Name = "label10";
+            label10.Size = new Size(79, 15);
+            label10.TabIndex = 21;
+            label10.Text = "Clear title of:";
+            // 
+            // textBoxSearch
+            // 
+            textBoxSearch.Location = new Point(84, 173);
+            textBoxSearch.Name = "textBoxSearch";
+            textBoxSearch.Size = new Size(75, 23);
+            textBoxSearch.TabIndex = 22;
+            // 
+            // buttonClearText
+            // 
+            buttonClearText.Location = new Point(165, 172);
+            buttonClearText.Name = "buttonClearText";
+            buttonClearText.Size = new Size(50, 23);
+            buttonClearText.TabIndex = 23;
+            buttonClearText.Text = "Clear";
+            buttonClearText.UseVisualStyleBackColor = true;
+            buttonClearText.Click += buttonClearText_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(buttonClearText);
+            Controls.Add(textBoxSearch);
+            Controls.Add(label10);
             Controls.Add(labelOperation);
             Controls.Add(panelAudioOnly);
             Controls.Add(label13);
@@ -373,5 +406,8 @@
         private Label label13;
         private Label label14;
         private Label labelOperation;
+        private Label label10;
+        private TextBox textBoxSearch;
+        private Button buttonClearText;
     }
 }

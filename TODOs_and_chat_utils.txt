@@ -1,11 +1,20 @@
 TODOs:
-Enter pressed on audio only details
+
 v 1) Progress bar for converting to mp3 or mp4 (inter-process communication..)
 v 2) Tags for downloading an audio playlist that is confirmed by user to be an album.
-3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
+v 3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
+x 3.1) Option for downloading the thumbnail of video (thumnail.jpg) or playlist (named cover.jpg)
+x 3.2) Checkbox for looking in the description for "Video and Audio" splitting times - should use the same form as the audio splitting.
+
+x3.3) More thorough testing:
+x    - cancel when least expected
+x    - make cancel buttons work for all the things intended (eg. cancel in splitter form should cancel all the splitting)
+x    - enter rubbish times in the song stard/end times
+x    - press buttons that are available when they shouln't be
+
 x 4) Optional: Adaptive menu (for the case when maximize is done)
 x 5) See how it behaves on different screen resolutions.
-x 6) More details on fetching playlist items.
+x 6) More verbouse text on the left of the progress bar.
 
 
 
