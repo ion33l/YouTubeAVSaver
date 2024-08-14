@@ -57,6 +57,9 @@
             label10 = new Label();
             textBoxSearch = new TextBox();
             buttonClearText = new Button();
+            label15 = new Label();
+            checkBox1 = new CheckBox();
+            checkBox2 = new CheckBox();
             panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
@@ -98,6 +101,7 @@
             // 
             // cancelButton
             // 
+            cancelButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             cancelButton.Location = new Point(486, 2);
             cancelButton.Name = "cancelButton";
             cancelButton.Size = new Size(75, 23);
@@ -110,7 +114,7 @@
             // 
             videoAndAudioButton.AutoSize = true;
             videoAndAudioButton.Checked = true;
-            videoAndAudioButton.Location = new Point(198, 79);
+            videoAndAudioButton.Location = new Point(122, 79);
             videoAndAudioButton.Name = "videoAndAudioButton";
             videoAndAudioButton.Size = new Size(113, 19);
             videoAndAudioButton.TabIndex = 4;
@@ -121,7 +125,7 @@
             // audioOnlyButton
             // 
             audioOnlyButton.AutoSize = true;
-            audioOnlyButton.Location = new Point(346, 79);
+            audioOnlyButton.Location = new Point(238, 79);
             audioOnlyButton.Name = "audioOnlyButton";
             audioOnlyButton.Size = new Size(85, 19);
             audioOnlyButton.TabIndex = 5;
@@ -337,11 +341,46 @@
             buttonClearText.UseVisualStyleBackColor = true;
             buttonClearText.Click += buttonClearText_Click;
             // 
+            // label15
+            // 
+            label15.BackColor = Color.Black;
+            label15.BorderStyle = BorderStyle.Fixed3D;
+            label15.Location = new Point(323, 69);
+            label15.Name = "label15";
+            label15.Size = new Size(1, 40);
+            label15.TabIndex = 24;
+            label15.Text = "label15";
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(340, 69);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(241, 19);
+            checkBox1.TabIndex = 25;
+            checkBox1.Text = "Download parts or chapters? (start - end)";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
+            // 
+            // checkBox2
+            // 
+            checkBox2.AutoSize = true;
+            checkBox2.Location = new Point(340, 90);
+            checkBox2.Name = "checkBox2";
+            checkBox2.Size = new Size(136, 19);
+            checkBox2.TabIndex = 26;
+            checkBox2.Text = "Download thumnail?";
+            checkBox2.UseVisualStyleBackColor = true;
+            checkBox2.CheckedChanged += checkBox2_CheckedChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(584, 611);
+            Controls.Add(checkBox2);
+            Controls.Add(checkBox1);
+            Controls.Add(label15);
             Controls.Add(buttonClearText);
             Controls.Add(textBoxSearch);
             Controls.Add(label10);
@@ -409,5 +448,8 @@
         private Label label10;
         private TextBox textBoxSearch;
         private Button buttonClearText;
+        private Label label15;
+        private CheckBox checkBox1;
+        private CheckBox checkBox2;
     }
 }

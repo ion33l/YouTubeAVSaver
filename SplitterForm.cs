@@ -57,6 +57,12 @@ namespace YoutubeDownloader
                 dataGridView1.Rows.Add(0, segment.StartTime, segment.EndTime, segment.Title);
             }
 
+            if (SongSegments.Count == 0)
+            {
+                btnAdd_Click(sender, e);
+            }
+
+
             UpdateIndexColumn();
 
             // Event handlers for drag and drop
@@ -157,11 +163,11 @@ namespace YoutubeDownloader
             {
                 StartTime = TimeSpan.Zero,
                 EndTime = TimeSpan.Zero,
-                Title = "New Song"
+                Title = "New Item"
             };
 
             SongSegments.Add(newRow);
-            dataGridView1.Rows.Add(newRow.StartTime, newRow.EndTime, newRow.Title);
+            dataGridView1.Rows.Add(0, newRow.StartTime, newRow.EndTime, newRow.Title);
 
             UpdateIndexColumn();
         }

@@ -22,7 +22,12 @@ namespace YoutubeDownloader
         private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, string url)> videoControlReferences =
             new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, string)>();
         private Progress<ProgressInfo> progressReporter;
-        string totalDuration = "";
+
+        string totalDuration          = "";
+        public bool downloadParts     = false;
+        public bool downloadThumbnail = false;
+
+
         public Form1()
         {
             InitializeComponent();
@@ -159,11 +164,6 @@ namespace YoutubeDownloader
             }
 
             return videoControlValues.ToArray();
-        }
-
-        private void audioOnlyButton_CheckedChanged(object sender, EventArgs e)
-        {
-            panelAudioOnly.Visible = audioOnlyButton.Checked;
         }
 
         void UpdateSizeLabel(int selectedIndex, string[] sizes, Label sizeLabel)
@@ -455,7 +455,6 @@ namespace YoutubeDownloader
                     }
                 }
 
-
                 // Calculate the end times
                 for (int i = 0; i < segments.Count - 1; i++)
                 {
@@ -627,7 +626,7 @@ namespace YoutubeDownloader
                     }
                 }
 
-                showProgressBarAndOthers(false, "");
+                //showProgressBarAndOthers(false, "");
 
             }, token);
         }
@@ -646,12 +645,22 @@ namespace YoutubeDownloader
             return ExecuteFFMpegCommand(arguments);
         }
 
+        void sanitizeSegments(List<SongSegment> segments, TimeSpan duration)
+        {
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var segment = segments[i];
+
+                if (segment.EndTime > duration)
+                    segment.EndTime = duration;
+            }
+        }
         private string FormatTimeSpan(TimeSpan timeSpan)
         {
             return timeSpan.ToString(@"hh\:mm\:ss\.fff");
         }
 
-        private List<string> splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory)
+        private List<string> spliFileIntoSegments(string toSplitFilePath, List<SongSegment> segments, string splitOutputDirectory, bool videoAndAudio)
         {
             List<string> outputFiles = new List<string>();
 
@@ -670,17 +679,22 @@ namespace YoutubeDownloader
 
                     string trackNumber = (i + 1).ToString("D2");
                     string sanitizedTitle = new string(segment.Title.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
-                    string outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
+                    string outputFileName;
+                    if (videoAndAudio)
+                        outputFileName = $"{trackNumber}. {sanitizedTitle}.mp4";
+                    else
+                        outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
+
                     string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
 
                     // Build ffmpeg command arguments
-                    string arguments = $"-y -i \"{toSplitMP3FilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
+                    string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
                     // Execute ffmpeg process
                     ExecuteFFMpegCommand(arguments);
                     // Add the output file path to the list
                     outputFiles.Add(outputFilePath);
                 }
-                
+
                 return outputFiles;
             }
             catch (Exception ex)
@@ -776,10 +790,34 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(true, "3: Convert to mp4");
 
-
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
                         showProgressBarAndOthers(false, "");
+
+                        if(downloadParts)
+                        {
+                            var videoDetails = await ytClient.Videos.GetAsync(url);
+
+                            TimeSpan duration = videoDetails.Duration.Value;
+
+                            var segments = getPartsFromDescription(videoDetails.Description, duration);
+
+                            using (var form = new SplitterForm(segments))
+                            {
+                                if (form.ShowDialog() == DialogResult.OK)
+                                {
+                                    segments = form.SongSegments;
+                                }
+                            }
+
+                            sanitizeSegments(segments, duration);
+
+                            showProgressBarAndOthers(true, "4: Split tracks");
+
+                            List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, false);
+
+                            showProgressBarAndOthers(false, "");
+                        }
 
                         // Clean up temporary files
                         try
@@ -912,15 +950,19 @@ namespace YoutubeDownloader
                         if (playlistIsAlbum)
                         {
                             SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
+
                         }
 
                         var videoDetails = await ytClient.Videos.GetAsync(url);
 
-                        if (videoDetails.Duration.Value.Minutes >= 15)
+                        if (videoDetails.Duration.Value.Minutes >= 15 || downloadParts == true)
                         {
-                            DialogResult result = MessageBox.Show("This is file pretty long. Is this item an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                            
-                            if (result == DialogResult.Yes)
+                            DialogResult result = DialogResult.No;
+
+                            if(videoDetails.Duration.Value.Minutes >= 15)
+                                result = MessageBox.Show("This is file pretty long. Is this item an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                            if (result == DialogResult.Yes || downloadParts == true)
                             {
                                 itemIsAlbum = true;
 
@@ -946,7 +988,7 @@ namespace YoutubeDownloader
                                 TimeSpan duration = videoDetails.Duration.Value;
 
                                 var segments = getPartsFromDescription(videoDetails.Description, duration);
-                                
+
                                 using (var form = new SplitterForm(segments))
                                 {
                                     if (form.ShowDialog() == DialogResult.OK)
@@ -955,10 +997,12 @@ namespace YoutubeDownloader
                                     }
                                 }
 
+                                sanitizeSegments(segments, duration);
+
                                 showProgressBarAndOthers(true, "3: Split tracks");
 
-                                List<string> songPathList = splitMP3File(outputFilePath, segments, downloadPath);
-                                     //function definition: splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory)
+                                List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, false);
+                                //function definition: splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory, bool audioOnly)
 
                                 showProgressBarAndOthers(false, "");
 
@@ -967,10 +1011,11 @@ namespace YoutubeDownloader
                                 {
                                     string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(Path.GetFileName(songPath));
                                     string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
-                                    index ++;
-                                    Thread.Sleep(200); //delay for writing of the file to complete
+                                    index++;
+                                    Thread.Sleep(500); //delay for writing of the file to complete
                                     SetMp3Tags(songPath, index.ToString(), artist, title, album, year, genre);
                                 }
+
                             }
                         }
                         // Clean up temporary files
@@ -1011,7 +1056,7 @@ namespace YoutubeDownloader
 
             try { isSingleValidURL = await ytClient.Videos.GetAsync(videoUrl) != null; } catch { }
             try { isPlayListValidURL = await ytClient.Playlists.GetAsync(videoUrl) != null; } catch { }
-            
+
             if (!(isSingleValidURL || isPlayListValidURL))
             {
                 MessageBox.Show("Problems with this link. Check the URL or the internet connection", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1028,6 +1073,7 @@ namespace YoutubeDownloader
             fetchButton.Enabled = true;
             downloadButton.Enabled = true;
         }
+
         private void browseButton_Click(object sender, EventArgs e)
         {
             // Create a new instance of FolderBrowserDialog
@@ -1041,10 +1087,12 @@ namespace YoutubeDownloader
                 }
             }
         }
+
         private void cancelButton_Click(object sender, EventArgs e)
         {
             cancellationTokenSource?.Cancel();
         }
+
         private void downloadButton_Click(object sender, EventArgs e)
         {
             string originalText = downloadButton.Text;
@@ -1113,6 +1161,29 @@ namespace YoutubeDownloader
                     }
                 }
             }
+        }
+
+        private void audioOnlyButton_CheckedChanged(object sender, EventArgs e)
+        {
+            checkBox2.Checked = audioOnlyButton.Checked;
+            downloadThumbnail = audioOnlyButton.Checked;
+            panelAudioOnly.Visible = audioOnlyButton.Checked;
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e) //downloadParts
+        {
+            if (checkBox1.Checked)
+                downloadParts = true;
+            else
+                downloadParts = false;
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e) //downloadThumbnails
+        {
+            if (checkBox2.Checked)
+                downloadThumbnail = true;
+            else
+                downloadThumbnail = false;
         }
     }
 }
