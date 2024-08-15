@@ -23,10 +23,11 @@ namespace YoutubeDownloader
             new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, string)>();
         private Progress<ProgressInfo> progressReporter;
 
-        string totalDuration          = "";
+        public bool fromPlaylist      = false;
+        public string totalDuration   = "";
         public bool downloadParts     = false;
         public bool downloadThumbnail = false;
-
+        
 
         public Form1()
         {
@@ -60,7 +61,8 @@ namespace YoutubeDownloader
             }
         }
 
-        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[] GetFetchedVideoDetails()
+        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[]
+             GetFetchedVideoDetails()   /*TODO remove this if not used*/
         {
             var fetchedVideoDetails = new List<(bool, int, string, string, string)>();
 
@@ -78,10 +80,12 @@ namespace YoutubeDownloader
             return fetchedVideoDetails.ToArray();
         }
 
-        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]> getPanelVideosDetailsAsync(string url)
+        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]>
+             getPanelVideosDetailsAsync(string url)
         {
             if (url.Contains("playlist"))
             {
+                fromPlaylist = true;
                 var playlist = await ytClient.Playlists.GetAsync(url);
                 var playlistVideos = await ytClient.Playlists.GetVideosAsync(playlist.Id);
                 progressBar.Visible = true;
@@ -120,8 +124,8 @@ namespace YoutubeDownloader
                         if (resolutions[j] == null)
                             sizes[j] = "N/A";
                     }
-
-                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
+                    
+                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
                 }
                 progressBar.Visible = false;
             }
@@ -160,7 +164,7 @@ namespace YoutubeDownloader
                         sizes[j] = "N/A";
                 }
 
-                videoControlValues.Add((true, 1, video.Title, video.Thumbnails[0].Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), url));
+                videoControlValues.Add((true, 1, video.Title, video.Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), url));
             }
 
             return videoControlValues.ToArray();
@@ -626,7 +630,7 @@ namespace YoutubeDownloader
                     }
                 }
 
-                //showProgressBarAndOthers(false, "");
+                ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = false });
 
             }, token);
         }
@@ -704,6 +708,34 @@ namespace YoutubeDownloader
             }
         }
 
+        public static async Task DownloadThumbnailAsync(string thumbnailUrl, string downloadDirectory)
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    using (HttpResponseMessage response = await client.GetAsync(thumbnailUrl, HttpCompletionOption.ResponseHeadersRead))
+                    {
+                        response.EnsureSuccessStatusCode();
+
+                        var uri = new Uri(thumbnailUrl);
+                        string path = uri.AbsolutePath;
+                        string extension = Path.GetExtension(path);
+                        string fileExtension = string.IsNullOrEmpty(extension) ? ".jpg" : extension;
+                        string downloadPath = Path.Combine(downloadDirectory, $"cover{fileExtension}");
+
+                        // Stream the content to a file
+                        using (var contentStream = await response.Content.ReadAsStreamAsync())
+                        using (var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            await contentStream.CopyToAsync(fileStream);
+                        }
+                    }
+                }
+            }
+            catch {}
+        }
+
         async void downloadAudioVideo(string URL, string downloadPath)
         {
             progressBar.Value = 0;
@@ -713,7 +745,7 @@ namespace YoutubeDownloader
                 progressBar.Value = (int)percent;
             });
 
-            foreach (var videoControl in videoControlReferences)
+            foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
             {
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
                 // Check if the CheckBox is checked
@@ -814,10 +846,14 @@ namespace YoutubeDownloader
 
                             showProgressBarAndOthers(true, "4: Split tracks");
 
-                            List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, false);
+                            List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, true);
 
                             showProgressBarAndOthers(false, "");
+
                         }
+
+                        if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
+                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath);
 
                         // Clean up temporary files
                         try
@@ -832,6 +868,7 @@ namespace YoutubeDownloader
                     }
                 }
             }
+            MessageBox.Show("Download finished!", "YoutubeDownloader");
         }
 
         async void downloadAudioOnly(string URL, string downloadPath)
@@ -891,9 +928,9 @@ namespace YoutubeDownloader
                     MessageBox.Show("Please check at least one item.");
                 }
             }
-
-            foreach (var videoControl in videoControlReferences)
-            {
+            
+            foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
+            {    
                 itemIsAlbum = false;
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
 
@@ -1006,18 +1043,21 @@ namespace YoutubeDownloader
 
                                 showProgressBarAndOthers(false, "");
 
-                                int index = 0;
+                                int index2 = 0;
                                 foreach (string songPath in songPathList)
                                 {
                                     string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(Path.GetFileName(songPath));
                                     string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
-                                    index++;
+                                    index2++;
                                     Thread.Sleep(500); //delay for writing of the file to complete
-                                    SetMp3Tags(songPath, index.ToString(), artist, title, album, year, genre);
+                                    SetMp3Tags(songPath, index2.ToString(), artist, title, album, year, genre);
                                 }
-
                             }
+                            //TODO if(!keepBigFile)  spliFileIntoSegments is not async, so not wainting after its finish. not good if we delete the file
+                            //try { File.Delete(outputFilePath); } catch { }
                         }
+                        if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
+                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath);
                         // Clean up temporary files
                         try
                         {
@@ -1030,6 +1070,7 @@ namespace YoutubeDownloader
                     }
                 }
             }
+            MessageBox.Show("Download finished!", "YoutubeDownloader");
         }
 
 //Buttons

@@ -369,7 +369,7 @@
             checkBox2.Name = "checkBox2";
             checkBox2.Size = new Size(136, 19);
             checkBox2.TabIndex = 26;
-            checkBox2.Text = "Download thumnail?";
+            checkBox2.Text = "Download thumnail (cover image)";
             checkBox2.UseVisualStyleBackColor = true;
             checkBox2.CheckedChanged += checkBox2_CheckedChanged;
             // 
