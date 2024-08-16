@@ -367,7 +367,7 @@
             checkBox2.AutoSize = true;
             checkBox2.Location = new Point(340, 90);
             checkBox2.Name = "checkBox2";
-            checkBox2.Size = new Size(136, 19);
+            checkBox2.Size = new Size(207, 19);
             checkBox2.TabIndex = 26;
             checkBox2.Text = "Download thumnail (cover image)";
             checkBox2.UseVisualStyleBackColor = true;

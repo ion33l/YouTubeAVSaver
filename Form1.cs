@@ -428,7 +428,7 @@ namespace YoutubeDownloader
             return new TimeSpan(hours, minutes, seconds);
         }
 
-        public static List<SongSegment> getPartsFromDescription(string description, TimeSpan maxLength)
+        public static List<SongSegment> getPartsFromDescription(string description, string artist, TimeSpan maxLength)
         {
             try
             {
@@ -454,7 +454,9 @@ namespace YoutubeDownloader
                         {
                             StartTime = startTime,
                             EndTime = TimeSpan.Zero, // Placeholder, to be determined later
-                            Title = title
+                            Title = title,
+                            Artist = artist
+
                         });
                     }
                 }
@@ -691,6 +693,7 @@ namespace YoutubeDownloader
 
                     string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
 
+                    ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
                     // Build ffmpeg command arguments
                     string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
                     // Execute ffmpeg process
@@ -832,9 +835,9 @@ namespace YoutubeDownloader
 
                             TimeSpan duration = videoDetails.Duration.Value;
 
-                            var segments = getPartsFromDescription(videoDetails.Description, duration);
+                            var segments = getPartsFromDescription(videoDetails.Description, "", duration);
 
-                            using (var form = new SplitterForm(segments))
+                            using (var form = new SplitterForm(segments, true))
                             {
                                 if (form.ShowDialog() == DialogResult.OK)
                                 {
@@ -849,7 +852,7 @@ namespace YoutubeDownloader
                             List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, true);
 
                             showProgressBarAndOthers(false, "");
-
+                             
                         }
 
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
@@ -1024,9 +1027,9 @@ namespace YoutubeDownloader
 
                                 TimeSpan duration = videoDetails.Duration.Value;
 
-                                var segments = getPartsFromDescription(videoDetails.Description, duration);
+                                var segments = getPartsFromDescription(videoDetails.Description, artist, duration);
 
-                                using (var form = new SplitterForm(segments))
+                                using (var form = new SplitterForm(segments, false))
                                 {
                                     if (form.ShowDialog() == DialogResult.OK)
                                     {
@@ -1048,9 +1051,10 @@ namespace YoutubeDownloader
                                 {
                                     string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(Path.GetFileName(songPath));
                                     string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
+                                    string segmentArtist = segments[index2].Artist;
                                     index2++;
                                     Thread.Sleep(500); //delay for writing of the file to complete
-                                    SetMp3Tags(songPath, index2.ToString(), artist, title, album, year, genre);
+                                    SetMp3Tags(songPath, index2.ToString(), segmentArtist, title, album, year, genre);
                                 }
                             }
                             //TODO if(!keepBigFile)  spliFileIntoSegments is not async, so not wainting after its finish. not good if we delete the file

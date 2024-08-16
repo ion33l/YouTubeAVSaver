@@ -3,7 +3,7 @@ TODOs:
 v 1) Progress bar for converting to mp3 or mp4 (inter-process communication..)
 v 2) Tags for downloading an audio playlist that is confirmed by user to be an album.
 v 3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
-x 3.1) Option for downloading the thumbnail of video (thumnail.jpg) or playlist (named cover.jpg)
+v 3.1) Option for downloading the thumbnail of video (thumnail.jpg) or playlist (named cover.jpg)
 v 3.2) Checkbox for looking in the description for "Video and Audio" splitting times - should use the same form as the audio splitting.
 
 x3.3) More thorough testing:
@@ -15,7 +15,7 @@ x    - press buttons that are available when they shouln't be
 x 4) Optional: Adaptive menu (for the case when maximize is done)
 x 5) See how it behaves on different screen resolutions.
 x 6) More verbouse text on the left of the progress bar.
-x 7) Nice to have: be able to change the artist on the Spliiter Form if the request is for an audio file (for compilations with multiple artists..)
+v 7) Nice to have: be able to change the artist on the Splitter Form if the request is for an audio file (for compilations with multiple artists..)
 
 
 ChatGPT utils:

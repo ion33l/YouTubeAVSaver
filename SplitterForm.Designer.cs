@@ -5,6 +5,8 @@
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public string Title { get; set; }
+
+        public string Artist { get; set; }
     }
     public partial class SplitterForm
     {

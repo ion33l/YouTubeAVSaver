@@ -16,10 +16,11 @@ namespace YoutubeDownloader
         private int rowIndexOfItemUnderMouseToDrop;
         private System.Windows.Forms.Timer dragTimer;
         private bool isDragging;
+        private bool isAudioAndVideo = false;
 
         public List<SongSegment> SongSegments { get; private set; }
 
-        public SplitterForm(List<SongSegment> songSegments)
+        public SplitterForm(List<SongSegment> songSegments, bool isAudioAndVideo)
         {
             InitializeComponent();
             SongSegments = songSegments;
@@ -28,6 +29,7 @@ namespace YoutubeDownloader
             dragTimer = new System.Windows.Forms.Timer();
             dragTimer.Interval = 10; // 10ms for long press
             dragTimer.Tick += DragTimer_Tick;
+            this.isAudioAndVideo = isAudioAndVideo;
         }
 
         private void SplitterForm_Load(object sender, EventArgs e)
@@ -41,11 +43,21 @@ namespace YoutubeDownloader
             dataGridView1.Columns.Add("Start_time", "Start Time");
             dataGridView1.Columns.Add("End_time", "End Time");
             dataGridView1.Columns.Add("Title", "Title");
+            dataGridView1.Columns.Add("Artist", "Artist");
+            if (!isAudioAndVideo)
+            {
+                dataGridView1.Columns["Title"].Width = 220;
+                dataGridView1.Columns["Artist"].Width = 102;
+            }
+            else
+            {
+                dataGridView1.Columns["Title"].Width = 322;
+                dataGridView1.Columns["Artist"].Width = 0;
+            }
 
             dataGridView1.Columns["Index"].Width = 25;
             dataGridView1.Columns["Start_time"].Width = 55;
             dataGridView1.Columns["End_time"].Width = 55;
-            dataGridView1.Columns["Title"].Width = 322;
 
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView1.AllowDrop = true;
@@ -54,7 +66,7 @@ namespace YoutubeDownloader
 
             foreach (var segment in SongSegments)
             {
-                dataGridView1.Rows.Add(0, segment.StartTime, segment.EndTime, segment.Title);
+                dataGridView1.Rows.Add(0, segment.StartTime, segment.EndTime, segment.Title, segment.Artist);
             }
 
             if (SongSegments.Count == 0)
@@ -71,6 +83,7 @@ namespace YoutubeDownloader
             dataGridView1.MouseUp += new MouseEventHandler(dataGridView1_MouseUp);
             dataGridView1.DragOver += new DragEventHandler(dataGridView1_DragOver);
             dataGridView1.DragDrop += new DragEventHandler(dataGridView1_DragDrop);
+            dataGridView1.KeyDown += new KeyEventHandler(Form1_KeyDown);
         }
 
         private void UpdateIndexColumn()
@@ -163,11 +176,12 @@ namespace YoutubeDownloader
             {
                 StartTime = TimeSpan.Zero,
                 EndTime = TimeSpan.Zero,
-                Title = "New Item"
+                Title = "New Item",
+                Artist = "Artist"
             };
 
             SongSegments.Add(newRow);
-            dataGridView1.Rows.Add(0, newRow.StartTime, newRow.EndTime, newRow.Title);
+            dataGridView1.Rows.Add(0, newRow.StartTime, newRow.EndTime, newRow.Title, newRow.Artist);
 
             UpdateIndexColumn();
         }
@@ -184,6 +198,18 @@ namespace YoutubeDownloader
                 UpdateIndexColumn();
             }
         }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+                // Call the delete function
+                btnDelete_Click(sender, e);
+
+                // Optionally, mark the event as handled if needed
+                e.Handled = true;
+            }
+        }
         private void btnOk_Click(object sender, EventArgs e)
         {
             SongSegments.Clear();
@@ -194,12 +220,14 @@ namespace YoutubeDownloader
                 var startTime = TimeSpan.Parse(row.Cells[1].Value.ToString());
                 var endTime = TimeSpan.Parse(row.Cells[2].Value.ToString());
                 var title = row.Cells[3].Value.ToString();
+                var artist = row.Cells[4].Value.ToString();
 
                 var segment = new SongSegment
                 {
                     StartTime = startTime,
                     EndTime = endTime,
-                    Title = title
+                    Title = title,
+                    Artist = artist
                 };
 
                 SongSegments.Add(segment);
