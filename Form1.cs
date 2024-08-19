@@ -36,13 +36,37 @@ namespace YoutubeDownloader
             cancelButton.Hide();
             panelAudioOnly.Visible = false;
             progressBar.Visible = false;
-            ffmpegConvertBar.Visible = false;
             cancellationTokenSource = new CancellationTokenSource();
             progressReporter = new Progress<ProgressInfo>(info =>
             {
                 progressBar.Value = info.Value;
                 progressBar.Visible = info.Visible;
             });
+            mainAnchors();
+        }
+
+        public void mainAnchors()
+        {
+            fetchButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            downloadButton.Anchor = AnchorStyles.Bottom;
+            youtubeURLTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            txtFolderPath.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            progressBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label4.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label6.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label7.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            checkBox1.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            checkBox2.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            label15.Anchor = AnchorStyles.Top;
+
+            label3.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Resolution
+            label13.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Size
+            label8.Anchor = AnchorStyles.Top;  //VIDEOS TO DOWNLOAD
+
+            scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; 
+            panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
         }
         private struct ProgressInfo
         {
@@ -210,7 +234,8 @@ namespace YoutubeDownloader
             for (int i = 0; i < videos.Length; i++)
             {
                 var video = videos[i];
-
+                //int scrollbarWidth = VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0;
+                int scrollbarWidth = SystemInformation.VerticalScrollBarWidth;
                 // Choose the background color based on the index
                 Color backgroundColor = (i % 2 == 0) ? evenColor : oddColor;
 
@@ -218,10 +243,9 @@ namespace YoutubeDownloader
                 Panel videoPanel = new Panel
                 {
                     Location = new Point(10, i * 80 + 10),
-                    Size = new Size(523, 80),
+                    Size = new Size(scrollablePanel.Width - 20, 80),
                     BackColor = backgroundColor
                 };
-                scrollablePanel.Controls.Add(videoPanel);
 
                 // Checkbox
                 CheckBox checkBox = new CheckBox
@@ -238,7 +262,7 @@ namespace YoutubeDownloader
                 {
                     Location = new Point(30, 27),
                     Text = video.No.ToString(),
-                    AutoSize = true,
+                    Size = new Size(20, 20),
                     BackColor = backgroundColor
                 };
                 videoPanel.Controls.Add(noLabel);
@@ -247,10 +271,12 @@ namespace YoutubeDownloader
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = 330,
+                    Width = (i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 225) : (scrollablePanel.Width - 225 - scrollbarWidth),  /* sum of all other items + bug if scrollable panel exceeds the visible panel. the scrollbar appears*/
+                    //Width = scrollablePanel.Width - 225 - scrollbarWidth,
                     Text = video.Title,
                     BackColor = white
                 };
+                titleTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
                 videoPanel.Controls.Add(titleTextBox);
 
                 // Thumbnail (PictureBox)
@@ -266,15 +292,18 @@ namespace YoutubeDownloader
                 //videoPanel.Controls.Add(pictureBox); //decided not to show thumnails because of its overhead
 
                 // Resolution (ComboBox)
+
                 ComboBox resolutionComboBox = new ComboBox
                 {
-                    Location = new Point(390, 25),
+                    Location = new Point((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
+                    //Location = new Point(scrollablePanel.Width - 167 /* size + resolution*/, 25),
                     Width = 67,
                     DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = white
                 };
 
                 // Add unique resolution options for each video
+                resolutionComboBox.Anchor = AnchorStyles.Top | AnchorStyles.Right;
                 resolutionComboBox.Items.AddRange(video.Resolutions);
 
                 // Select the appropriate resolution
@@ -302,16 +331,17 @@ namespace YoutubeDownloader
                 // Size (Label)
                 Label sizeLabel = new Label
                 {
-                    Location = new Point(460, 27),
+                    Location = new Point((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 100) : (scrollablePanel.Width - 100 - scrollbarWidth), 27),
+                    //Location = new Point(scrollablePanel.Width - 100, 27),
                     Text = correspondingSize,
-                    AutoSize = true,
+                    Size = new Size(100, 20),
                     BackColor = backgroundColor
                 };
 
                 // Update the Label initially
                 UpdateSizeLabel(resolutionComboBox.SelectedIndex, video.Sizes, sizeLabel);
 
-
+                sizeLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
                 videoPanel.Controls.Add(sizeLabel);
 
                 // Handle the SelectedIndexChanged event
@@ -324,6 +354,9 @@ namespace YoutubeDownloader
 
                 };
                 string url = video.url;
+
+                videoPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                scrollablePanel.Controls.Add(videoPanel);
 
                 // Store control references
                 videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url));
@@ -837,7 +870,7 @@ namespace YoutubeDownloader
 
                             var segments = getPartsFromDescription(videoDetails.Description, "", duration);
 
-                            using (var form = new SplitterForm(segments, true))
+                            using (var form = new SplitterForm(segments, true, duration))
                             {
                                 if (form.ShowDialog() == DialogResult.OK)
                                 {
@@ -1029,7 +1062,7 @@ namespace YoutubeDownloader
 
                                 var segments = getPartsFromDescription(videoDetails.Description, artist, duration);
 
-                                using (var form = new SplitterForm(segments, false))
+                                using (var form = new SplitterForm(segments, false, duration))
                                 {
                                     if (form.ShowDialog() == DialogResult.OK)
                                     {

@@ -17,10 +17,12 @@ namespace YoutubeDownloader
         private System.Windows.Forms.Timer dragTimer;
         private bool isDragging;
         private bool isAudioAndVideo = false;
+        TimeSpan duration;
+        int offset = 0;
 
         public List<SongSegment> SongSegments { get; private set; }
 
-        public SplitterForm(List<SongSegment> songSegments, bool isAudioAndVideo)
+        public SplitterForm(List<SongSegment> songSegments, bool isAudioAndVideo, TimeSpan duration)
         {
             InitializeComponent();
             SongSegments = songSegments;
@@ -30,6 +32,12 @@ namespace YoutubeDownloader
             dragTimer.Interval = 10; // 10ms for long press
             dragTimer.Tick += DragTimer_Tick;
             this.isAudioAndVideo = isAudioAndVideo;
+            this.duration = duration;
+            btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnAdd.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            dataGridView1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
         }
 
         private void SplitterForm_Load(object sender, EventArgs e)
@@ -44,24 +52,28 @@ namespace YoutubeDownloader
             dataGridView1.Columns.Add("End_time", "End Time");
             dataGridView1.Columns.Add("Title", "Title");
             dataGridView1.Columns.Add("Artist", "Artist");
+
+            dataGridView1.Columns["Index"].Width = 35;
+            dataGridView1.Columns["Start_time"].Width = 80;
+            dataGridView1.Columns["End_time"].Width = 80;
+
             if (!isAudioAndVideo)
             {
-                dataGridView1.Columns["Title"].Width = 220;
-                dataGridView1.Columns["Artist"].Width = 102;
+                dataGridView1.Columns["Artist"].Width = 130;
+                offset = 2;
             }
             else
             {
-                dataGridView1.Columns["Title"].Width = 322;
                 dataGridView1.Columns["Artist"].Width = 0;
+                dataGridView1.Columns["Artist"].Visible = false;
+                offset = -4;
             }
-
-            dataGridView1.Columns["Index"].Width = 25;
-            dataGridView1.Columns["Start_time"].Width = 55;
-            dataGridView1.Columns["End_time"].Width = 55;
+            dataGridView1.Columns["Title"].Width = dataGridView1.Width - offset - dataGridView1.RowHeadersWidth -
+                                                   dataGridView1.Columns["Index"].Width - dataGridView1.Columns["Start_time"].Width -
+                                                   dataGridView1.Columns["Start_time"].Width - dataGridView1.Columns["Artist"].Width;
 
             dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView1.AllowDrop = true;
-
             dataGridView1.AllowUserToAddRows = false; // Disable the last empty row
 
             foreach (var segment in SongSegments)
@@ -74,7 +86,6 @@ namespace YoutubeDownloader
                 btnAdd_Click(sender, e);
             }
 
-
             UpdateIndexColumn();
 
             // Event handlers for drag and drop
@@ -84,6 +95,7 @@ namespace YoutubeDownloader
             dataGridView1.DragOver += new DragEventHandler(dataGridView1_DragOver);
             dataGridView1.DragDrop += new DragEventHandler(dataGridView1_DragDrop);
             dataGridView1.KeyDown += new KeyEventHandler(Form1_KeyDown);
+            dataGridView1.SizeChanged += DataGridView1_SizeChanged;
         }
 
         private void UpdateIndexColumn()
@@ -95,8 +107,19 @@ namespace YoutubeDownloader
                     dataGridView1.Rows[i].Cells["Index"].Value = "0" + dataGridView1.Rows[i].Cells["Index"].Value;
             }
         }
+        private void DataGridView1_SizeChanged(object sender, EventArgs e)
+        {
+            int titleColumnWidth = dataGridView1.Width - offset - dataGridView1.RowHeadersWidth -
+                           dataGridView1.Columns["Index"].Width - dataGridView1.Columns["Start_time"].Width -
+                           dataGridView1.Columns["End_time"].Width - dataGridView1.Columns["Artist"].Width;
 
-        private void dataGridView1_MouseDown(object sender, MouseEventArgs e)
+            // Set the width of the "Title" column
+            if (titleColumnWidth > 0) // Ensure the width is not negative
+            {
+                dataGridView1.Columns["Title"].Width = titleColumnWidth;
+            }
+        }
+            private void dataGridView1_MouseDown(object sender, MouseEventArgs e)
         {
             // Get the index of the item under the mouse pointer
             rowIndexFromMouseDown = dataGridView1.HitTest(e.X, e.Y).RowIndex;
@@ -175,7 +198,7 @@ namespace YoutubeDownloader
             var newRow = new SongSegment
             {
                 StartTime = TimeSpan.Zero,
-                EndTime = TimeSpan.Zero,
+                EndTime = this.duration,
                 Title = "New Item",
                 Artist = "Artist"
             };
