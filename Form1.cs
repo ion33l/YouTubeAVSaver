@@ -68,11 +68,13 @@ namespace YoutubeDownloader
             panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
         }
+ 
         private struct ProgressInfo
         {
             public int Value { get; set; }
             public bool Visible { get; set; }
         }
+        
         private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -218,6 +220,7 @@ namespace YoutubeDownloader
                 progressBar.Value = value;
             }
         }
+
         private void ClearPanel()
         {
             scrollablePanel.Controls.Clear();
@@ -231,6 +234,10 @@ namespace YoutubeDownloader
             Color evenColor = Color.FromArgb(220, 220, 220); // Slightly darker grey for even entries
             Color white = Color.White;
 
+            bool exceedsScrollablePanel = false;
+            if (videos.Length > (scrollablePanel.Height / 80 /*future videoPanel.Height*/))
+                exceedsScrollablePanel = true;
+
             for (int i = 0; i < videos.Length; i++)
             {
                 var video = videos[i];
@@ -243,7 +250,7 @@ namespace YoutubeDownloader
                 Panel videoPanel = new Panel
                 {
                     Location = new Point(10, i * 80 + 10),
-                    Size = new Size(scrollablePanel.Width - 20, 80),
+                    Size = new Size(exceedsScrollablePanel? scrollablePanel.Width - scrollbarWidth : scrollablePanel.Width - scrollbarWidth - scrollbarWidth, 80),
                     BackColor = backgroundColor
                 };
 
@@ -268,10 +275,11 @@ namespace YoutubeDownloader
                 videoPanel.Controls.Add(noLabel);
 
                 // Title (TextBox)
+
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = (i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 225) : (scrollablePanel.Width - 225 - scrollbarWidth),  /* sum of all other items + bug if scrollable panel exceeds the visible panel. the scrollbar appears*/
+                    Width = ((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 225) : (scrollablePanel.Width - 225 - scrollbarWidth),  /* sum of all other items + bug if scrollable panel exceeds the visible panel. the scrollbar appears*/
                     //Width = scrollablePanel.Width - 225 - scrollbarWidth,
                     Text = video.Title,
                     BackColor = white
@@ -295,7 +303,7 @@ namespace YoutubeDownloader
 
                 ComboBox resolutionComboBox = new ComboBox
                 {
-                    Location = new Point((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
+                    Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
                     //Location = new Point(scrollablePanel.Width - 167 /* size + resolution*/, 25),
                     Width = 67,
                     DropDownStyle = ComboBoxStyle.DropDownList,
@@ -331,10 +339,10 @@ namespace YoutubeDownloader
                 // Size (Label)
                 Label sizeLabel = new Label
                 {
-                    Location = new Point((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) ? (scrollablePanel.Width - 100) : (scrollablePanel.Width - 100 - scrollbarWidth), 27),
+                    Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 90) : (scrollablePanel.Width - 90 - scrollbarWidth), 27),
                     //Location = new Point(scrollablePanel.Width - 100, 27),
                     Text = correspondingSize,
-                    Size = new Size(100, 20),
+                    Size = new Size(90, 20),
                     BackColor = backgroundColor
                 };
 
@@ -362,6 +370,7 @@ namespace YoutubeDownloader
                 videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url));
             }
         }
+
         void OnDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null) return;
@@ -392,6 +401,7 @@ namespace YoutubeDownloader
                 }
             }
         }
+
         public void showProgressBarAndOthers(bool show, string textBoxText)
         {
             if (show)
@@ -415,6 +425,7 @@ namespace YoutubeDownloader
                 fetchButton.Enabled = true;
             }
         }
+
         public async Task CopyToAsyncWithProgress(Stream videoStream, Stream fileStream, IProgress<double> progress, CancellationToken cancellationToken)
         {
             var totalBytes = videoStream.Length;
@@ -435,6 +446,7 @@ namespace YoutubeDownloader
                 }
             }
         }
+
         private static TimeSpan ParseTime(string time)
         {
             // Split the time string into components
@@ -694,6 +706,7 @@ namespace YoutubeDownloader
                     segment.EndTime = duration;
             }
         }
+
         private string FormatTimeSpan(TimeSpan timeSpan)
         {
             return timeSpan.ToString(@"hh\:mm\:ss\.fff");

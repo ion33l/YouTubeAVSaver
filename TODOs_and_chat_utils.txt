@@ -9,19 +9,15 @@ v 3.2) Checkbox for looking in the description for "Video and Audio" splitting t
 x3.3) More thorough testing:
 x    - cancel when least expected
 x    - make cancel buttons work for all the things intended (eg. cancel in splitter form should cancel all the splitting)
-x    - enter rubbish times in the song stard/end times
-x    - press buttons that are available when they shouln't be
 
 v 4) Optional: Adaptive menu (for the case when maximize is done) - adaptive scrollable panel
 v 5) See how it behaves on different screen resolutions.
 x 6) More verbouse text on the left of the progress bar.
 v 7) Nice to have: be able to change the artist on the Splitter Form if the request is for an audio file (for compilations with multiple artists..)
-x 8) Make sure the start and stop times are ascending and do not exceed 0 or max length.
+x 8) Make sure the start and stop times are ascending and do not exceed 0 or max length, make it 00:00:00 if it's rubbish
 x 9) Add a keep initial file button in the splitting form. 
 x 10) await la splitting to show the finnish message only after the splitting. si mesaj in timpul splittingului
-x 11) Scale 125% issues: https://chatgpt.com/share/7f6a0c08-e189-439c-a97a-390668241951 and https://github.com/dotnet/winforms/blob/main/docs/designer/designer-high-dpi-mode.md
-
-
+x 11) download parts for video and audio in separate folder 
 
 
 ChatGPT utils:
