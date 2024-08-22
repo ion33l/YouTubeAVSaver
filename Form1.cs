@@ -7,7 +7,6 @@ using YoutubeExplode.Videos.Streams;
 
 using System.Diagnostics;
 using System.Threading;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Text.RegularExpressions;
 
@@ -42,9 +41,26 @@ namespace YoutubeDownloader
                 progressBar.Value = info.Value;
                 progressBar.Visible = info.Visible;
             });
+
+            this.Resize += new EventHandler(Form1_Resize);
+            labelPlaylist.SizeChanged += new EventHandler(labelPlaylist_SizeChanged);
+            CenterLabel();
+
             mainAnchors();
         }
-
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            CenterLabel();
+        }
+        private void labelPlaylist_SizeChanged(object sender, EventArgs e)
+        {
+            CenterLabel();
+        }
+        private void CenterLabel()
+        {
+            label8.Left = (this.ClientSize.Width - label8.Width) / 2;
+            labelPlaylist.Left = (this.ClientSize.Width - labelPlaylist.Width) / 2;
+        }
         public void mainAnchors()
         {
             fetchButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -63,6 +79,7 @@ namespace YoutubeDownloader
             label3.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Resolution
             label13.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Size
             label8.Anchor = AnchorStyles.Top;  //VIDEOS TO DOWNLOAD
+            labelPlaylist.Anchor = AnchorStyles.Top;
 
             scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; 
             panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
@@ -109,6 +126,9 @@ namespace YoutubeDownloader
         async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]>
              getPanelVideosDetailsAsync(string url)
         {
+            label8.Text = "VIDEO(S) TO DOWNLOAD";
+            labelPlaylist.Text = "";
+
             if (url.Contains("playlist"))
             {
                 fromPlaylist = true;
@@ -154,6 +174,8 @@ namespace YoutubeDownloader
                     videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
                 }
                 progressBar.Visible = false;
+                label8.Text = "VIDEOS TO DOWNLOAD FOR PLAYLIST:";
+                labelPlaylist.Text = playlist.Title;
             }
             else
             {
@@ -191,6 +213,9 @@ namespace YoutubeDownloader
                 }
 
                 videoControlValues.Add((true, 1, video.Title, video.Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), url));
+
+                label8.Text = "VIDEO TO DOWNLOAD:";
+                labelPlaylist.Text = "";
             }
 
             return videoControlValues.ToArray();
@@ -417,6 +442,8 @@ namespace YoutubeDownloader
             else
             {
                 labelOperation.Text = "";
+                if (cancellationTokenSource != null)
+                    cancellationTokenSource.Dispose();
                 cancellationTokenSource = null;
                 progressBar.Visible = false;
                 cancelButton.Hide();
@@ -473,6 +500,19 @@ namespace YoutubeDownloader
             return new TimeSpan(hours, minutes, seconds);
         }
 
+        private String getTruncatedIndexTitleString(int index, String title)
+        {
+            String newTitle;
+
+            if (title.Length > 17)
+            {
+                newTitle = (index + 1).ToString() + ". " + title.Substring(0, 17) + ".."; // Add "..." to indicate truncation
+            }
+            else
+                newTitle = (index + 1).ToString() + ". " + title;
+
+            return newTitle;
+        }
         public static List<SongSegment> getPartsFromDescription(string description, string artist, TimeSpan maxLength)
         {
             try
@@ -611,31 +651,37 @@ namespace YoutubeDownloader
             return "";
         }
 
-        public void SetMp3Tags(string filePath, string trackNumber, string artist, string trackTitle, string album, string year, string genre)
+        public Task SetMp3Tags(string filePath, string trackNumber, string artist, string trackTitle, string album, string year, string genre)
         {
-            try
+            cancellationTokenSource = new CancellationTokenSource();
+            var token = cancellationTokenSource.Token;
+
+            return Task.Run(() =>
             {
-                using (var tagFile = TagLib.File.Create(filePath))
+                try
                 {
-                    var tag = (TagLib.Id3v2.Tag)tagFile.GetTag(TagLib.TagTypes.Id3v2, true);
+                    using (var tagFile = TagLib.File.Create(filePath))
+                    {
+                        var tag = (TagLib.Id3v2.Tag)tagFile.GetTag(TagLib.TagTypes.Id3v2, true);
 
-                    tag.Performers = new[] { artist };
-                    tag.Title = trackTitle;
-                    tag.Track = uint.Parse(trackNumber);
-                    tag.Album = album;
-                    tag.Year = uint.Parse(year);
+                        tag.Performers = new[] { artist };
+                        tag.Title = trackTitle;
+                        tag.Track = uint.Parse(trackNumber);
+                        tag.Album = album;
+                        tag.Year = uint.Parse(year);
 
-                    var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON"), TagLib.StringType.Latin1);
-                    genreFrame.Text = new[] { genre };
-                    tag.AddFrame(genreFrame);
+                        var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON"), TagLib.StringType.Latin1);
+                        genreFrame.Text = new[] { genre };
+                        tag.AddFrame(genreFrame);
 
-                    tagFile.Save();
+                        tagFile.Save();
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred when setting tags for {trackTitle}: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occurred when setting tags for {trackTitle}: {ex.Message}");
+                }
+            }, token);
         }
 
         private Task ExecuteFFMpegCommand(string arguments)
@@ -648,7 +694,7 @@ namespace YoutubeDownloader
             {
                 //var ffmpegPath = @"C:\Program Files\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"; 
                 var ffmpegPath = Path.Combine(Application.StartupPath, "Resources", "FFmpeg", "ffmpeg.exe");
-
+                 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegPath,
@@ -712,14 +758,14 @@ namespace YoutubeDownloader
             return timeSpan.ToString(@"hh\:mm\:ss\.fff");
         }
 
-        private List<string> spliFileIntoSegments(string toSplitFilePath, List<SongSegment> segments, string splitOutputDirectory, bool videoAndAudio)
+        private async Task<List<string>> spliFileIntoSegments(string toSplitFilePath, List<SongSegment> segments, string splitOutputDirectory, bool videoAndAudio, IProgress<double> progress)
         {
             List<string> outputFiles = new List<string>();
 
             try
             {
                 for (int i = 0; i < segments.Count; i++)
-                {
+                {           
                     var segment = segments[i];
                     TimeSpan duration = segment.EndTime - segment.StartTime;
 
@@ -737,15 +783,23 @@ namespace YoutubeDownloader
                     else
                         outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
 
+                    string progressBarMessage = videoAndAudio ? $"  IV: Splitting mp4s:\n {getTruncatedIndexTitleString(i + 1, outputFileName)}" :
+                                                                $"  III: Splitting mp3s:\n {getTruncatedIndexTitleString(i + 1,outputFileName)}";
+                    
                     string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
 
-                    ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
+                    showProgressBarAndOthers(true, progressBarMessage);
+                    UpdateProgress((int)((i + 1) * 100 / segments.Count));
+
                     // Build ffmpeg command arguments
                     string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
+
                     // Execute ffmpeg process
-                    ExecuteFFMpegCommand(arguments);
+                    await ExecuteFFMpegCommand(arguments);
                     // Add the output file path to the list
                     outputFiles.Add(outputFilePath);
+
+                    showProgressBarAndOthers(false, "");
                 }
 
                 return outputFiles;
@@ -822,7 +876,8 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "1: Video Download");
+                            showProgressBarAndOthers(true, $"  I: Video Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+
                             using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
                             {
                                 //await videoStream.CopyToAsync(fileStream);
@@ -848,7 +903,8 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "2: Audio Download");
+                            showProgressBarAndOthers(true, $"  II: Audio Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
                                 //await audioStream.CopyToAsync(fileStream);
@@ -869,7 +925,7 @@ namespace YoutubeDownloader
                             return;
                         }
 
-                        showProgressBarAndOthers(true, "3: Convert to mp4");
+                        showProgressBarAndOthers(true, $"  III: Convert to mp4:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
 
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
@@ -893,9 +949,23 @@ namespace YoutubeDownloader
 
                             sanitizeSegments(segments, duration);
 
-                            showProgressBarAndOthers(true, "4: Split tracks");
+                            showProgressBarAndOthers(true, "  IV: Splitting tracks");
 
-                            List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, true);
+                            try
+                            {
+                                string partsFolderPath = Path.Combine(downloadPath, Path.GetFileNameWithoutExtension(outputFilePath) + " - Parts");
+                                if (!Directory.Exists(partsFolderPath))
+                                {
+                                    Directory.CreateDirectory(partsFolderPath);
+                                }
+                                downloadPath = partsFolderPath;
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+
+                            List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, downloadPath, true, progress);
 
                             showProgressBarAndOthers(false, "");
                              
@@ -1007,7 +1077,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, "1: Audio Download");
+                            showProgressBarAndOthers(true, $"  I: Audio Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
 
@@ -1027,7 +1097,8 @@ namespace YoutubeDownloader
                             showProgressBarAndOthers(false, "");
                             return;
                         }
-                        showProgressBarAndOthers(true, "2: Convert to mp3");
+
+                        showProgressBarAndOthers(true, $"  II: Convert to mp3:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
 
                         await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
 
@@ -1035,7 +1106,7 @@ namespace YoutubeDownloader
 
                         if (playlistIsAlbum)
                         {
-                            SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
+                            await SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
 
                         }
 
@@ -1051,7 +1122,6 @@ namespace YoutubeDownloader
                             if (result == DialogResult.Yes || downloadParts == true)
                             {
                                 itemIsAlbum = true;
-
                                 (artist, album, year, genre) = await getTagsFromURL(url);
 
                                 using (var tagEditor = new TagEditorForm(artist, album, year, genre))
@@ -1084,14 +1154,12 @@ namespace YoutubeDownloader
                                 }
 
                                 sanitizeSegments(segments, duration);
-
-                                showProgressBarAndOthers(true, "3: Split tracks");
-
-                                List<string> songPathList = spliFileIntoSegments(outputFilePath, segments, downloadPath, false);
-                                //function definition: splitMP3File(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory, bool audioOnly)
-
                                 showProgressBarAndOthers(false, "");
 
+                                List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, downloadPath, false, progress);
+                                //function definition: spliFileIntoSegments(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory, bool audioOnly)
+
+                                Thread.Sleep(500); //delay for the writing of the file to complete
                                 int index2 = 0;
                                 foreach (string songPath in songPathList)
                                 {
@@ -1099,12 +1167,20 @@ namespace YoutubeDownloader
                                     string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
                                     string segmentArtist = segments[index2].Artist;
                                     index2++;
-                                    Thread.Sleep(500); //delay for writing of the file to complete
-                                    SetMp3Tags(songPath, index2.ToString(), segmentArtist, title, album, year, genre);
+                                    
+                                    showProgressBarAndOthers(true, $"  IV: Setting tags for \n {getTruncatedIndexTitleString(index2, fileNameWithoutExtension)}");
+                                    
+                                    UpdateProgress((int)(index2 * 100 / segments.Count));
+  
+                                    await SetMp3Tags(songPath, index2.ToString(), segmentArtist, title, album, year, genre);
+                                    Thread.Sleep(200); //added this to see the splitting message. ~2 seconds per album isn't much
+
+                                    showProgressBarAndOthers(false, "");
                                 }
                             }
                             //TODO if(!keepBigFile)  spliFileIntoSegments is not async, so not wainting after its finish. not good if we delete the file
                             //try { File.Delete(outputFilePath); } catch { }
+
                         }
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
                             DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath);
@@ -1212,14 +1288,10 @@ namespace YoutubeDownloader
             if (videoAndAudioButton.Checked)
             {
                 downloadAudioVideo(videoUrl, downloadPath);
-
-                //MessageBox.Show("Video download initiated.", "Download", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else if (audioOnlyButton.Checked)
             {
                 downloadAudioOnly(videoUrl, downloadPath);
-
-                //MessageBox.Show("Audio download initiated.", "Download", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
@@ -1234,6 +1306,10 @@ namespace YoutubeDownloader
         {
             // Get the search string from the search TextBox
             string searchString = textBoxSearch.Text;
+            //if (textBoxSearch.Text == "")
+            //    return;
+            //TODO - return  try for the case searchString
+
 
             // Loop through all controls in the scrollable panel
             foreach (Control videoPanel in scrollablePanel.Controls)
