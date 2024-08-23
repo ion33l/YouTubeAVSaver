@@ -74,7 +74,7 @@
             // downloadButton
             // 
             downloadButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            downloadButton.Location = new Point(284, 560);
+            downloadButton.Location = new Point(284, 550);
             downloadButton.Name = "downloadButton";
             downloadButton.Size = new Size(120, 40);
             downloadButton.TabIndex = 1;
@@ -137,11 +137,11 @@
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label1.Location = new Point(22, 48);
+            label1.Location = new Point(15, 43);
             label1.Name = "label1";
             label1.Size = new Size(82, 15);
             label1.TabIndex = 6;
-            label1.Text = "Youtube URL:";
+            label1.Text = "    Youtube URL:\n (single or playlist)";
             // 
             // label2
             // 

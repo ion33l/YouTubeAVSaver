@@ -22,11 +22,11 @@ namespace YoutubeDownloader
             new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, string)>();
         private Progress<ProgressInfo> progressReporter;
 
+        public string lastFetchedVideoUrl = "";
         public bool fromPlaylist      = false;
         public string totalDuration   = "";
         public bool downloadParts     = false;
         public bool downloadThumbnail = false;
-        
 
         public Form1()
         {
@@ -513,6 +513,7 @@ namespace YoutubeDownloader
 
             return newTitle;
         }
+
         public static List<SongSegment> getPartsFromDescription(string description, string artist, TimeSpan maxLength)
         {
             try
@@ -728,29 +729,18 @@ namespace YoutubeDownloader
             }, token);
         }
 
-        private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool audioAndVideo)
+        private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool videoAndAudio)
         {
             string arguments;
             totalDuration = "";
             ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = true });
 
-            if (audioAndVideo)
+            if (videoAndAudio)
                 arguments = $"-y -i \"{videoPath}\" -i \"{audioPath}\" -c copy \"{outputPath}\"";
             else
                 arguments = $"-y -i \"{audioPath}\" -vn -c:a libmp3lame \"{outputPath}\"";
 
             return ExecuteFFMpegCommand(arguments);
-        }
-
-        void sanitizeSegments(List<SongSegment> segments, TimeSpan duration)
-        {
-            for (int i = 0; i < segments.Count; i++)
-            {
-                var segment = segments[i];
-
-                if (segment.EndTime > duration)
-                    segment.EndTime = duration;
-            }
         }
 
         private string FormatTimeSpan(TimeSpan timeSpan)
@@ -769,12 +759,11 @@ namespace YoutubeDownloader
                     var segment = segments[i];
                     TimeSpan duration = segment.EndTime - segment.StartTime;
 
-                    if (duration <= TimeSpan.Zero)
-                        break;
+                    if (duration < TimeSpan.Zero)
+                        continue;
 
                     string startTime = FormatTimeSpan(segment.StartTime);
                     string durationString = FormatTimeSpan(duration);
-
                     string trackNumber = (i + 1).ToString("D2");
                     string sanitizedTitle = new string(segment.Title.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
                     string outputFileName;
@@ -806,12 +795,12 @@ namespace YoutubeDownloader
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                MessageBox.Show($"An error occurred when splitting the file: {ex.Message}");
                 return new List<string>();
             }
         }
 
-        public static async Task DownloadThumbnailAsync(string thumbnailUrl, string downloadDirectory)
+        public static async Task DownloadThumbnailAsync(string thumbnailUrl, string downloadDirectory, string title, bool itemIsAlbum, bool videoAndAudio)
         {
             try
             {
@@ -825,7 +814,12 @@ namespace YoutubeDownloader
                         string path = uri.AbsolutePath;
                         string extension = Path.GetExtension(path);
                         string fileExtension = string.IsNullOrEmpty(extension) ? ".jpg" : extension;
-                        string downloadPath = Path.Combine(downloadDirectory, $"cover{fileExtension}");
+                        string downloadPath;
+
+                        if (itemIsAlbum)
+                            downloadPath = Path.Combine(downloadDirectory, $"cover{fileExtension}");
+                        else
+                            downloadPath = videoAndAudio ? Path.Combine(downloadDirectory, $"{title} - thumbnail{fileExtension}") : Path.Combine(downloadDirectory, $"{title} - cover{fileExtension}");
 
                         // Stream the content to a file
                         using (var contentStream = await response.Content.ReadAsStreamAsync())
@@ -933,6 +927,7 @@ namespace YoutubeDownloader
 
                         if(downloadParts)
                         {
+                            bool keepBigFile = false;
                             var videoDetails = await ytClient.Videos.GetAsync(url);
 
                             TimeSpan duration = videoDetails.Duration.Value;
@@ -944,10 +939,9 @@ namespace YoutubeDownloader
                                 if (form.ShowDialog() == DialogResult.OK)
                                 {
                                     segments = form.SongSegments;
+                                    keepBigFile = form.keepInitialBigFile;
                                 }
                             }
-
-                            sanitizeSegments(segments, duration);
 
                             showProgressBarAndOthers(true, "  IV: Splitting tracks");
 
@@ -968,11 +962,13 @@ namespace YoutubeDownloader
                             List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, downloadPath, true, progress);
 
                             showProgressBarAndOthers(false, "");
-                             
+
+                            if (!keepBigFile)
+                                try { File.Delete(outputFilePath); } catch { }
                         }
 
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
-                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath);
+                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, false, true);
 
                         // Clean up temporary files
                         try
@@ -1116,11 +1112,12 @@ namespace YoutubeDownloader
                         {
                             DialogResult result = DialogResult.No;
 
-                            if(videoDetails.Duration.Value.Minutes >= 15)
-                                result = MessageBox.Show("This is file pretty long. Is this item an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                            if(videoDetails.Duration.Value.Minutes >= 15 && downloadParts == false)
+                                result = MessageBox.Show("This item is pretty long, it seems to be an album. Search for song names and times in the description?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                             if (result == DialogResult.Yes || downloadParts == true)
                             {
+                                bool keepBigFile = false;
                                 itemIsAlbum = true;
                                 (artist, album, year, genre) = await getTagsFromURL(url);
 
@@ -1150,10 +1147,10 @@ namespace YoutubeDownloader
                                     if (form.ShowDialog() == DialogResult.OK)
                                     {
                                         segments = form.SongSegments;
+                                        keepBigFile = form.keepInitialBigFile;
                                     }
                                 }
 
-                                sanitizeSegments(segments, duration);
                                 showProgressBarAndOthers(false, "");
 
                                 List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, downloadPath, false, progress);
@@ -1177,13 +1174,14 @@ namespace YoutubeDownloader
 
                                     showProgressBarAndOthers(false, "");
                                 }
-                            }
-                            //TODO if(!keepBigFile)  spliFileIntoSegments is not async, so not wainting after its finish. not good if we delete the file
-                            //try { File.Delete(outputFilePath); } catch { }
 
+                                if(!keepBigFile)
+                                    try { File.Delete(outputFilePath); } catch { }
+                            }
                         }
+                        
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
-                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath);
+                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
                         // Clean up temporary files
                         try
                         {
@@ -1203,6 +1201,7 @@ namespace YoutubeDownloader
         private async void fetchButton_Click(object sender, EventArgs e)
         {
             var videoUrl = youtubeURLTextBox.Text;
+            lastFetchedVideoUrl = videoUrl;
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 MessageBox.Show("Please enter the Youtube URL before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1268,11 +1267,12 @@ namespace YoutubeDownloader
 
             var fetchedVideoDetails = GetFetchedVideoDetails();
 
-            var videoUrl = youtubeURLTextBox.Text;
+            var videoUrl = lastFetchedVideoUrl;
+
             var downloadPath = txtFolderPath.Text;
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
-                MessageBox.Show("Please enter the Youtube URL before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please enter the Youtube URL and fetch its details before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 downloadButton.Enabled = true;
                 downloadButton.Text = "DOWNLOAD";
                 return;

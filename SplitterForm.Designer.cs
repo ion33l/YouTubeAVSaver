@@ -32,6 +32,7 @@
             btnAdd = new Button();
             btnDelete = new Button();
             btnOk = new Button();
+            checkBox1 = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
@@ -74,9 +75,21 @@
             btnOk.UseVisualStyleBackColor = true;
             btnOk.Click += btnOk_Click;
             // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(380, 420);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(160, 24);
+            checkBox1.TabIndex = 4;
+            checkBox1.Text = "Keep big inital file?";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
+            // 
             // SplitterForm
             // 
             ClientSize = new Size(637, 461);
+            Controls.Add(checkBox1);
             Controls.Add(btnOk);
             Controls.Add(btnDelete);
             Controls.Add(btnAdd);
@@ -85,6 +98,9 @@
             Load += SplitterForm_Load;
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             ResumeLayout(false);
+            PerformLayout();
         }
+
+        private CheckBox checkBox1;
     }
 }

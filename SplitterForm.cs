@@ -17,22 +17,24 @@ namespace YoutubeDownloader
         private System.Windows.Forms.Timer dragTimer;
         private bool isDragging;
         private bool isAudioAndVideo = false;
-        TimeSpan duration;
+        TimeSpan totalDuration;
+        public bool keepInitialBigFile;
         int offset = 0;
 
         public List<SongSegment> SongSegments { get; private set; }
 
-        public SplitterForm(List<SongSegment> songSegments, bool isAudioAndVideo, TimeSpan duration)
+        public SplitterForm(List<SongSegment> songSegments, bool isAudioAndVideo, TimeSpan totalDuration)
         {
             InitializeComponent();
             SongSegments = songSegments;
+            keepInitialBigFile = false;
 
             // Initialize the drag timer
             dragTimer = new System.Windows.Forms.Timer();
             dragTimer.Interval = 10; // 10ms for long press
             dragTimer.Tick += DragTimer_Tick;
             this.isAudioAndVideo = isAudioAndVideo;
-            this.duration = duration;
+            this.totalDuration = totalDuration;
             btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnAdd.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -96,6 +98,16 @@ namespace YoutubeDownloader
             dataGridView1.DragDrop += new DragEventHandler(dataGridView1_DragDrop);
             dataGridView1.KeyDown += new KeyEventHandler(Form1_KeyDown);
             dataGridView1.SizeChanged += DataGridView1_SizeChanged;
+            dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
+        }
+
+        private TimeSpan ParseTime(string inputTime)
+        {
+            if (TimeSpan.TryParse(inputTime, out TimeSpan time) && time >= TimeSpan.Zero)
+            {
+                return time;
+            }
+            return TimeSpan.Zero; // Return 00:00:00 if the input is invalid
         }
 
         private void UpdateIndexColumn()
@@ -119,7 +131,40 @@ namespace YoutubeDownloader
                 dataGridView1.Columns["Title"].Width = titleColumnWidth;
             }
         }
-            private void dataGridView1_MouseDown(object sender, MouseEventArgs e)
+        private void DataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.ColumnIndex == dataGridView1.Columns["Start_time"].Index ||
+                e.ColumnIndex == dataGridView1.Columns["End_time"].Index)
+            {
+
+                string cellValue = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+
+                TimeSpan sanitizedValue = ParseTime(cellValue);
+
+                if(e.ColumnIndex == dataGridView1.Columns["Start_time"].Index)
+                {
+                    TimeSpan existingStop = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["End_time"].Index].Value.ToString());
+
+                    if (sanitizedValue > existingStop)
+                        sanitizedValue = existingStop;
+                    
+                }
+                if (e.ColumnIndex == dataGridView1.Columns["End_time"].Index)
+                {
+                    TimeSpan existingStart = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["Start_time"].Index].Value.ToString());
+
+                    if (sanitizedValue < existingStart)
+                        sanitizedValue = existingStart;
+                    
+                    if (sanitizedValue > totalDuration)
+                        sanitizedValue = totalDuration;
+                }
+
+                // Set the sanitized value back to the cell
+                dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = sanitizedValue;
+            }
+        }
+        private void dataGridView1_MouseDown(object sender, MouseEventArgs e)
         {
             // Get the index of the item under the mouse pointer
             rowIndexFromMouseDown = dataGridView1.HitTest(e.X, e.Y).RowIndex;
@@ -198,7 +243,7 @@ namespace YoutubeDownloader
             var newRow = new SongSegment
             {
                 StartTime = TimeSpan.Zero,
-                EndTime = this.duration,
+                EndTime = this.totalDuration,
                 Title = "New Item",
                 Artist = "Artist"
             };
@@ -264,6 +309,14 @@ namespace YoutubeDownloader
         {
             DialogResult = DialogResult.Cancel;
             Close();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked)
+                keepInitialBigFile = true;
+            else
+                keepInitialBigFile = false;
         }
     }
 }

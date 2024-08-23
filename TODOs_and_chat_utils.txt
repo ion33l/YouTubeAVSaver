@@ -13,16 +13,17 @@ v 4) Optional: Adaptive menu (for the case when maximize is done) - adaptive scr
 v 5) See how it behaves on different screen resolutions.
 v 6) More verbouse text on the left of the progress bar.
 v 7) Nice to have: be able to change the artist on the Splitter Form if the request is for an audio file (for compilations with multiple artists..)
-x8) Make sure the start and stop times in the splitting form are ascending and do not exceed 0 or max length, make it 00:00:00 if it's rubbish
-x9) Add a keep initial file button in the splitting form.
+v 8) Make sure the start and stop times in the splitting form are ascending and do not exceed 0 or max length, make it 00:00:00 if it's rubbish
+v 9) Add a keep initial file button in the splitting form.
 v 10) await of splitting to show the finnish message only after the splitting
 v 11) download parts for video and audio in separate folder
 v 12) show playlist name on the main screen when downloading a playlist
 x13) add a "open in explorer" button for the download path
-x14) ""clear title of"" to be shown only for playlists and message if not found (try for empty string)
-x15) make fetching operation show on operation label and make it cancellable
-x16) make the operationsLabel more roomy (rearrage the progressbar and label)
-x17) try refactoring downloadAudioOnly and downloadAudioVideo functions
+x14) "clear title of" to be shown only for playlists and message if not found (try for empty string)
+x15) add an info (qustion mark - ?) to the radio buttons
+x16) make fetching operation show on operation label and make it cancellable
+x17) make the operationsLabel more roomy (rearrage the progressbar and label)
+x18) Optional: try refactoring downloadAudioOnly and downloadAudioVideo functions
 
 
 
