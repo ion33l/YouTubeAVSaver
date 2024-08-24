@@ -18,13 +18,12 @@ v 9) Add a keep initial file button in the splitting form.
 v 10) await of splitting to show the finnish message only after the splitting
 v 11) download parts for video and audio in separate folder
 v 12) show playlist name on the main screen when downloading a playlist
-x13) add a "open in explorer" button for the download path
-x14) "clear title of" to be shown only for playlists and message if not found (try for empty string)
-x15) add an info (qustion mark - ?) to the radio buttons
+v 13) add a "open in explorer" button for the download path
+v 14) "clear title of" to be shown only for playlists and message if not found (try for empty string)
+v 15) add an info (qustion mark - ?) to the radio buttons
 x16) make fetching operation show on operation label and make it cancellable
-x17) make the operationsLabel more roomy (rearrage the progressbar and label)
+x17) make the operationsLabel more roomy (rearrange the progressbar and label)
 x18) Optional: try refactoring downloadAudioOnly and downloadAudioVideo functions
-
 
 
 ChatGPT utils:

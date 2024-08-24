@@ -53,13 +53,14 @@
             fetchButton = new Button();
             label13 = new Label();
             labelOperation = new Label();
-            label10 = new Label();
+            labelClearTitleOf = new Label();
             textBoxSearch = new TextBox();
             buttonClearText = new Button();
             label15 = new Label();
             checkBox1 = new CheckBox();
             checkBox2 = new CheckBox();
             labelPlaylist = new Label();
+            openPathButton = new Button();
             panelAudioOnly.SuspendLayout();
             SuspendLayout();
             // 
@@ -91,7 +92,8 @@
             // 
             // browseButton
             // 
-            browseButton.Location = new Point(546, 137);
+            browseButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            browseButton.Location = new Point(546, 129);
             browseButton.Name = "browseButton";
             browseButton.Size = new Size(75, 23);
             browseButton.TabIndex = 3;
@@ -139,7 +141,7 @@
             label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             label1.Location = new Point(15, 43);
             label1.Name = "label1";
-            label1.Size = new Size(82, 15);
+            label1.Size = new Size(106, 30);
             label1.TabIndex = 6;
             label1.Text = "    Youtube URL:\n (single or playlist)";
             // 
@@ -307,15 +309,15 @@
             labelOperation.Size = new Size(0, 15);
             labelOperation.TabIndex = 20;
             // 
-            // label10
+            // labelClearTitleOf
             // 
-            label10.AutoSize = true;
-            label10.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.Location = new Point(17, 550);
-            label10.Name = "label10";
-            label10.Size = new Size(79, 15);
-            label10.TabIndex = 21;
-            label10.Text = "Clear title of:";
+            labelClearTitleOf.AutoSize = true;
+            labelClearTitleOf.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelClearTitleOf.Location = new Point(17, 550);
+            labelClearTitleOf.Name = "labelClearTitleOf";
+            labelClearTitleOf.Size = new Size(79, 15);
+            labelClearTitleOf.TabIndex = 21;
+            labelClearTitleOf.Text = "Clear titles of:";
             // 
             // textBoxSearch
             // 
@@ -375,18 +377,30 @@
             labelPlaylist.Size = new Size(0, 15);
             labelPlaylist.TabIndex = 27;
             // 
+            // openPathButton
+            // 
+            openPathButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            openPathButton.Location = new Point(546, 154);
+            openPathButton.Name = "openPathButton";
+            openPathButton.Size = new Size(74, 23);
+            openPathButton.TabIndex = 28;
+            openPathButton.Text = "Open Path";
+            openPathButton.UseVisualStyleBackColor = true;
+            openPathButton.Click += openPathButton_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(640, 602);
+            Controls.Add(openPathButton);
             Controls.Add(labelPlaylist);
             Controls.Add(checkBox2);
             Controls.Add(checkBox1);
             Controls.Add(label15);
             Controls.Add(buttonClearText);
             Controls.Add(textBoxSearch);
-            Controls.Add(label10);
+            Controls.Add(labelClearTitleOf);
             Controls.Add(labelOperation);
             Controls.Add(panelAudioOnly);
             Controls.Add(label13);
@@ -446,12 +460,13 @@
         private Label label13;
         private Label label14;
         private Label labelOperation;
-        private Label label10;
+        private Label labelClearTitleOf;
         private TextBox textBoxSearch;
         private Button buttonClearText;
         private Label label15;
         private CheckBox checkBox1;
         private CheckBox checkBox2;
         private Label labelPlaylist;
+        private Button openPathButton;
     }
 }

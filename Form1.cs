@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Threading;
 using System;
 using System.Text.RegularExpressions;
+using System.Diagnostics.Eventing.Reader;
 
 namespace YoutubeDownloader
 {
@@ -23,9 +24,9 @@ namespace YoutubeDownloader
         private Progress<ProgressInfo> progressReporter;
 
         public string lastFetchedVideoUrl = "";
-        public bool fromPlaylist      = false;
-        public string totalDuration   = "";
-        public bool downloadParts     = false;
+        public bool fromPlaylist = false;
+        public string totalDuration = "";
+        public bool downloadParts = false;
         public bool downloadThumbnail = false;
 
         public Form1()
@@ -35,6 +36,7 @@ namespace YoutubeDownloader
             cancelButton.Hide();
             panelAudioOnly.Visible = false;
             progressBar.Visible = false;
+            showClearTitleOf(false);
             cancellationTokenSource = new CancellationTokenSource();
             progressReporter = new Progress<ProgressInfo>(info =>
             {
@@ -47,6 +49,13 @@ namespace YoutubeDownloader
             CenterLabel();
 
             mainAnchors();
+
+            ToolTip toolTip = new ToolTip();
+            toolTip.SetToolTip(this.videoAndAudioButton, "mp4 download.");
+            toolTip.SetToolTip(this.audioOnlyButton, "mp3 download. For playlists that are music albums, it will make \na folder tree: \"artist/year - album\" and add the mp3 tags.");
+            toolTip.SetToolTip(this.textBoxSearch, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
+            toolTip.SetToolTip(this.labelClearTitleOf, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
+            toolTip.SetToolTip(this.checkBox1, "If checked it will look in the YouTube description and search\nfor chapters/parts times. If not found, it will let you add yours.");
         }
         private void Form1_Resize(object sender, EventArgs e)
         {
@@ -81,17 +90,17 @@ namespace YoutubeDownloader
             label8.Anchor = AnchorStyles.Top;  //VIDEOS TO DOWNLOAD
             labelPlaylist.Anchor = AnchorStyles.Top;
 
-            scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; 
+            scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
 
         }
- 
+
         private struct ProgressInfo
         {
             public int Value { get; set; }
             public bool Visible { get; set; }
         }
-        
+
         private void youtubeURLTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -170,7 +179,7 @@ namespace YoutubeDownloader
                         if (resolutions[j] == null)
                             sizes[j] = "N/A";
                     }
-                    
+
                     videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
                 }
                 progressBar.Visible = false;
@@ -246,6 +255,22 @@ namespace YoutubeDownloader
             }
         }
 
+        void showClearTitleOf(bool show)
+        {
+            if (show)
+            {
+                labelClearTitleOf.Visible = true;
+                textBoxSearch.Visible = true;
+                buttonClearText.Visible = true;
+                    
+            }
+            else
+            {
+                labelClearTitleOf.Visible = false;
+                textBoxSearch.Visible = false;
+                buttonClearText.Visible = false;
+            }
+        }
         private void ClearPanel()
         {
             scrollablePanel.Controls.Clear();
@@ -263,10 +288,11 @@ namespace YoutubeDownloader
             if (videos.Length > (scrollablePanel.Height / 80 /*future videoPanel.Height*/))
                 exceedsScrollablePanel = true;
 
+            showClearTitleOf(videos.Length > 1);
+
             for (int i = 0; i < videos.Length; i++)
             {
                 var video = videos[i];
-                //int scrollbarWidth = VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0;
                 int scrollbarWidth = SystemInformation.VerticalScrollBarWidth;
                 // Choose the background color based on the index
                 Color backgroundColor = (i % 2 == 0) ? evenColor : oddColor;
@@ -275,7 +301,7 @@ namespace YoutubeDownloader
                 Panel videoPanel = new Panel
                 {
                     Location = new Point(10, i * 80 + 10),
-                    Size = new Size(exceedsScrollablePanel? scrollablePanel.Width - scrollbarWidth : scrollablePanel.Width - scrollbarWidth - scrollbarWidth, 80),
+                    Size = new Size(exceedsScrollablePanel ? scrollablePanel.Width - scrollbarWidth : scrollablePanel.Width - scrollbarWidth - scrollbarWidth, 80),
                     BackColor = backgroundColor
                 };
 
@@ -695,7 +721,7 @@ namespace YoutubeDownloader
             {
                 //var ffmpegPath = @"C:\Program Files\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"; 
                 var ffmpegPath = Path.Combine(Application.StartupPath, "Resources", "FFmpeg", "ffmpeg.exe");
-                 
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegPath,
@@ -755,7 +781,7 @@ namespace YoutubeDownloader
             try
             {
                 for (int i = 0; i < segments.Count; i++)
-                {           
+                {
                     var segment = segments[i];
                     TimeSpan duration = segment.EndTime - segment.StartTime;
 
@@ -773,8 +799,8 @@ namespace YoutubeDownloader
                         outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
 
                     string progressBarMessage = videoAndAudio ? $"  IV: Splitting mp4s:\n {getTruncatedIndexTitleString(i + 1, outputFileName)}" :
-                                                                $"  III: Splitting mp3s:\n {getTruncatedIndexTitleString(i + 1,outputFileName)}";
-                    
+                                                                $"  III: Splitting mp3s:\n {getTruncatedIndexTitleString(i + 1, outputFileName)}";
+
                     string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
 
                     showProgressBarAndOthers(true, progressBarMessage);
@@ -830,7 +856,7 @@ namespace YoutubeDownloader
                     }
                 }
             }
-            catch {}
+            catch { }
         }
 
         async void downloadAudioVideo(string URL, string downloadPath)
@@ -925,7 +951,7 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(false, "");
 
-                        if(downloadParts)
+                        if (downloadParts)
                         {
                             bool keepBigFile = false;
                             var videoDetails = await ytClient.Videos.GetAsync(url);
@@ -947,7 +973,7 @@ namespace YoutubeDownloader
 
                             try
                             {
-                                string partsFolderPath = Path.Combine(downloadPath, Path.GetFileNameWithoutExtension(outputFilePath) + " - Parts");
+                                string partsFolderPath = Path.Combine(downloadPath, Path.GetFileNameWithoutExtension(outputFilePath) + " - Chapters");
                                 if (!Directory.Exists(partsFolderPath))
                                 {
                                     Directory.CreateDirectory(partsFolderPath);
@@ -1043,9 +1069,9 @@ namespace YoutubeDownloader
                     MessageBox.Show("Please check at least one item.");
                 }
             }
-            
+
             foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
-            {    
+            {
                 itemIsAlbum = false;
                 var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
 
@@ -1112,7 +1138,7 @@ namespace YoutubeDownloader
                         {
                             DialogResult result = DialogResult.No;
 
-                            if(videoDetails.Duration.Value.Minutes >= 15 && downloadParts == false)
+                            if (videoDetails.Duration.Value.Minutes >= 15 && downloadParts == false)
                                 result = MessageBox.Show("This item is pretty long, it seems to be an album. Search for song names and times in the description?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                             if (result == DialogResult.Yes || downloadParts == true)
@@ -1164,22 +1190,22 @@ namespace YoutubeDownloader
                                     string title = fileNameWithoutExtension.Substring(fileNameWithoutExtension.IndexOf(' ') + 1);
                                     string segmentArtist = segments[index2].Artist;
                                     index2++;
-                                    
+
                                     showProgressBarAndOthers(true, $"  IV: Setting tags for \n {getTruncatedIndexTitleString(index2, fileNameWithoutExtension)}");
-                                    
+
                                     UpdateProgress((int)(index2 * 100 / segments.Count));
-  
+
                                     await SetMp3Tags(songPath, index2.ToString(), segmentArtist, title, album, year, genre);
                                     Thread.Sleep(200); //added this to see the splitting message. ~2 seconds per album isn't much
 
                                     showProgressBarAndOthers(false, "");
                                 }
 
-                                if(!keepBigFile)
+                                if (!keepBigFile)
                                     try { File.Delete(outputFilePath); } catch { }
                             }
                         }
-                        
+
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
                             DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
                         // Clean up temporary files
@@ -1197,9 +1223,10 @@ namespace YoutubeDownloader
             MessageBox.Show("Download finished!", "YoutubeDownloader");
         }
 
-//Buttons
+        //Buttons
         private async void fetchButton_Click(object sender, EventArgs e)
         {
+            showClearTitleOf(false);
             var videoUrl = youtubeURLTextBox.Text;
             lastFetchedVideoUrl = videoUrl;
             if (string.IsNullOrWhiteSpace(videoUrl))
@@ -1304,25 +1331,18 @@ namespace YoutubeDownloader
 
         private void buttonClearText_Click(object sender, EventArgs e)
         {
-            // Get the search string from the search TextBox
             string searchString = textBoxSearch.Text;
-            //if (textBoxSearch.Text == "")
-            //    return;
-            //TODO - return  try for the case searchString
+            if (textBoxSearch.Text == "")
+                return;
 
-
-            // Loop through all controls in the scrollable panel
             foreach (Control videoPanel in scrollablePanel.Controls)
             {
-                // Ensure the control is a Panel (which should be your videoPanel)
                 if (videoPanel is Panel)
                 {
-                    // Find the titleTextBox within this videoPanel
                     foreach (Control control in videoPanel.Controls)
                     {
                         if (control is TextBox titleTextBox)
                         {
-                            // Replace the search string with an empty string in the titleTextBox
                             titleTextBox.Text = titleTextBox.Text.Replace(searchString, string.Empty);
                         }
                     }
@@ -1351,6 +1371,26 @@ namespace YoutubeDownloader
                 downloadThumbnail = true;
             else
                 downloadThumbnail = false;
+        }
+
+        private void openPathButton_Click(object sender, EventArgs e)
+        {
+            string path = txtFolderPath.Text;
+
+            if (!Directory.Exists(path))
+            {
+                MessageBox.Show("Please enter a valid folder path.", "Valid Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                Process.Start("explorer.exe", path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}");
+            }
         }
     }
 }
