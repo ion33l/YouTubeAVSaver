@@ -36,7 +36,6 @@ namespace YoutubeDownloader
             cancelButton.Hide();
             panelAudioOnly.Visible = false;
             progressBar.Visible = false;
-            showClearTitleOf(false);
             cancellationTokenSource = new CancellationTokenSource();
             progressReporter = new Progress<ProgressInfo>(info =>
             {
@@ -46,16 +45,12 @@ namespace YoutubeDownloader
 
             this.Resize += new EventHandler(Form1_Resize);
             labelPlaylist.SizeChanged += new EventHandler(labelPlaylist_SizeChanged);
+
+            showClearTitleOf(false);
             CenterLabel();
-
             mainAnchors();
-
-            ToolTip toolTip = new ToolTip();
-            toolTip.SetToolTip(this.videoAndAudioButton, "mp4 download.");
-            toolTip.SetToolTip(this.audioOnlyButton, "mp3 download. For playlists that are music albums, it will make \na folder tree: \"artist/year - album\" and add the mp3 tags.");
-            toolTip.SetToolTip(this.textBoxSearch, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
-            toolTip.SetToolTip(this.labelClearTitleOf, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
-            toolTip.SetToolTip(this.checkBox1, "If checked it will look in the YouTube description and search\nfor chapters/parts times. If not found, it will let you add yours.");
+            setToolTip();
+            
         }
         private void Form1_Resize(object sender, EventArgs e)
         {
@@ -70,10 +65,20 @@ namespace YoutubeDownloader
             label8.Left = (this.ClientSize.Width - label8.Width) / 2;
             labelPlaylist.Left = (this.ClientSize.Width - labelPlaylist.Width) / 2;
         }
+        void setToolTip()
+        {
+            ToolTip toolTip = new ToolTip();
+            toolTip.SetToolTip(this.videoAndAudioButton, "mp4 download.");
+            toolTip.SetToolTip(this.audioOnlyButton, "mp3 download. For playlists that are music albums, it will make \na folder tree: \"artist/year - album\" and add the mp3 tags.");
+            toolTip.SetToolTip(this.textBoxSearch, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
+            toolTip.SetToolTip(this.labelClearTitleOf, "Parses the above titles and removes the text you enter here.\nFor playlists that are music albums it's best to keep only the song names,\n as tags will add the artist and other info.");
+            toolTip.SetToolTip(this.checkBox1, "If checked it will look in the YouTube description and search\nfor chapters/parts times. If not found, it will let you add yours.");
+        }
         public void mainAnchors()
         {
             fetchButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             browseButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            openPathButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             downloadButton.Anchor = AnchorStyles.Bottom;
             youtubeURLTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             txtFolderPath.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -92,7 +97,6 @@ namespace YoutubeDownloader
 
             scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-
         }
 
         private struct ProgressInfo
@@ -135,6 +139,10 @@ namespace YoutubeDownloader
         async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]>
              getPanelVideosDetailsAsync(string url)
         {
+            if(cancellationTokenSource == null)
+                cancellationTokenSource = new CancellationTokenSource();
+            var token = cancellationTokenSource.Token;
+
             label8.Text = "VIDEO(S) TO DOWNLOAD";
             labelPlaylist.Text = "";
 
@@ -144,45 +152,61 @@ namespace YoutubeDownloader
                 var playlist = await ytClient.Playlists.GetAsync(url);
                 var playlistVideos = await ytClient.Playlists.GetVideosAsync(playlist.Id);
                 progressBar.Visible = true;
-                for (int i = 0; i < playlistVideos.Count; i++)
+
+                try
                 {
-                    UpdateProgress((int)(i * 100 / playlistVideos.Count));
-
-                    var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
-                    var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
-                    var videoStreams = streamManifest.GetVideoStreams();
-                    var audioStreams = streamManifest.GetAudioOnlyStreams();
-                    var audioStreamInfo = audioStreams
-                                            .OrderByDescending(s => s.Bitrate)
-                                            .Select(s => new
-                                            {
-                                                audioSize = (s.Size.Bytes)// / (1024.0 * 1024.0)).ToString("0.##")// + " MB"
-                                            })
-                                            .Take(1)
-                                            .SingleOrDefault();
-
-                    var resolutionSizeList = videoStreams
-                                            //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
-                                            .OrderByDescending(s => s.VideoQuality)
-                                            .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
-                                            .Select(s => new
-                                            {
-                                                Resolution = s.VideoQuality.Label,
-                                                videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
-                                            })
-                                            .ToList();
-
-                    string[] resolutions = resolutionSizeList.Select(rs => rs.Resolution).ToArray();
-                    string[] sizes = resolutionSizeList.Select(rs => rs.videoSize).ToArray();
-                    for (int j = 0; j < sizes.Length; j++)
+                    for (int i = 0; i < playlistVideos.Count; i++)
                     {
-                        if (resolutions[j] == null)
-                            sizes[j] = "N/A";
-                    }
+                        UpdateProgress((int)((i + 1) * 100 / playlistVideos.Count));
+                        showProgressBarAndOthers(true, $"Fetching \n {getTruncatedIndexTitleString(i, playlistVideos[i].Title)}");
+                        token.ThrowIfCancellationRequested();
 
-                    videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
+                        var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
+                        var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
+                        var videoStreams = streamManifest.GetVideoStreams();
+                        var audioStreams = streamManifest.GetAudioOnlyStreams();
+                        var audioStreamInfo = audioStreams
+                                                .OrderByDescending(s => s.Bitrate)
+                                                .Select(s => new
+                                                {
+                                                    audioSize = (s.Size.Bytes)// / (1024.0 * 1024.0)).ToString("0.##")// + " MB"
+                                                })
+                                                .Take(1)
+                                                .SingleOrDefault();
+
+                        var resolutionSizeList = videoStreams
+                                                //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                                                .OrderByDescending(s => s.VideoQuality)
+                                                .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
+                                                .Select(s => new
+                                                {
+                                                    Resolution = s.VideoQuality.Label,
+                                                    videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
+                                                })
+                                                .ToList();
+
+                        string[] resolutions = resolutionSizeList.Select(rs => rs.Resolution).ToArray();
+                        string[] sizes = resolutionSizeList.Select(rs => rs.videoSize).ToArray();
+                        for (int j = 0; j < sizes.Length; j++)
+                        {
+                            if (resolutions[j] == null)
+                                sizes[j] = "N/A";
+                        }
+
+                        videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
+                    }
                 }
-                progressBar.Visible = false;
+                catch (OperationCanceledException) 
+                {
+                    showProgressBarAndOthers(false, "");
+                    UpdateProgress(0);
+                    return videoControlValues.ToArray();
+                }
+
+                Thread.Sleep(300); //delay to see the progress bar at 100%
+                showProgressBarAndOthers(false, "");
+                UpdateProgress(0);
+
                 label8.Text = "VIDEOS TO DOWNLOAD FOR PLAYLIST:";
                 labelPlaylist.Text = playlist.Title;
             }
@@ -252,6 +276,37 @@ namespace YoutubeDownloader
             else
             {
                 progressBar.Value = value;
+            }
+        }
+
+        public void showProgressBarAndOthers(bool show, string textBoxText)
+        {
+            if (show)
+            {
+                //UpdateLabelOperation(textBoxText);
+                labelOperation.Text = textBoxText;
+                if (cancellationTokenSource == null)
+                    cancellationTokenSource = new CancellationTokenSource();
+                progressBar.Visible = true;
+                cancelButton.Show();
+                downloadButton.Enabled = false;
+                browseButton.Enabled = false;
+                fetchButton.Enabled = false;
+                openPathButton.Enabled = false;
+            }
+            else
+            {
+                //UpdateLabelOperation("");
+                labelOperation.Text = "";
+                if (cancellationTokenSource != null)
+                    cancellationTokenSource.Dispose();
+                cancellationTokenSource = null;
+                progressBar.Visible = false;
+                cancelButton.Hide();
+                downloadButton.Enabled = true;
+                browseButton.Enabled = true;
+                fetchButton.Enabled = true;
+                openPathButton.Enabled = true;
             }
         }
 
@@ -450,32 +505,6 @@ namespace YoutubeDownloader
                         ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 100, Visible = false });
                     }
                 }
-            }
-        }
-
-        public void showProgressBarAndOthers(bool show, string textBoxText)
-        {
-            if (show)
-            {
-                labelOperation.Text = textBoxText;
-                cancellationTokenSource = new CancellationTokenSource();
-                progressBar.Visible = true;
-                cancelButton.Show();
-                downloadButton.Enabled = false;
-                browseButton.Enabled = false;
-                fetchButton.Enabled = false;
-            }
-            else
-            {
-                labelOperation.Text = "";
-                if (cancellationTokenSource != null)
-                    cancellationTokenSource.Dispose();
-                cancellationTokenSource = null;
-                progressBar.Visible = false;
-                cancelButton.Hide();
-                downloadButton.Enabled = true;
-                browseButton.Enabled = true;
-                fetchButton.Enabled = true;
             }
         }
 
@@ -680,7 +709,8 @@ namespace YoutubeDownloader
 
         public Task SetMp3Tags(string filePath, string trackNumber, string artist, string trackTitle, string album, string year, string genre)
         {
-            cancellationTokenSource = new CancellationTokenSource();
+            if (cancellationTokenSource == null)
+                cancellationTokenSource = new CancellationTokenSource();
             var token = cancellationTokenSource.Token;
 
             return Task.Run(() =>
@@ -713,7 +743,8 @@ namespace YoutubeDownloader
 
         private Task ExecuteFFMpegCommand(string arguments)
         {
-            cancellationTokenSource = new CancellationTokenSource();
+            if (cancellationTokenSource == null)
+                cancellationTokenSource = new CancellationTokenSource();
             var token = cancellationTokenSource.Token;
 
 
@@ -1226,27 +1257,22 @@ namespace YoutubeDownloader
         //Buttons
         private async void fetchButton_Click(object sender, EventArgs e)
         {
-            showClearTitleOf(false);
+            fetchButton.Enabled = false;
+            downloadButton.Enabled = false;
+            string originalText = fetchButton.Text;
+            fetchButton.Text = "Fetching";
+            bool isSingleValidURL = false;
+            bool isPlayListValidURL = false;
             var videoUrl = youtubeURLTextBox.Text;
             lastFetchedVideoUrl = videoUrl;
+
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 MessageBox.Show("Please enter the Youtube URL before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Clear the panel
-            ClearPanel();
-
-            string originalText = fetchButton.Text;
-            fetchButton.Text = "Fetching";
-            fetchButton.Enabled = false;
-            downloadButton.Enabled = false;
-
             //Check the link or the internet connection
-            bool isSingleValidURL = false;
-            bool isPlayListValidURL = false;
-
             try { isSingleValidURL = await ytClient.Videos.GetAsync(videoUrl) != null; } catch { }
             try { isPlayListValidURL = await ytClient.Playlists.GetAsync(videoUrl) != null; } catch { }
 
@@ -1259,9 +1285,10 @@ namespace YoutubeDownloader
                 return;
             }
 
-            // Update the panel with new video data
+            ClearPanel();
+            showClearTitleOf(false);
             UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
-
+            
             fetchButton.Text = originalText;
             fetchButton.Enabled = true;
             downloadButton.Enabled = true;
