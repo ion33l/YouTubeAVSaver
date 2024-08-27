@@ -28,6 +28,7 @@ namespace YoutubeDownloader
         public string totalDuration = "";
         public bool downloadParts = false;
         public bool downloadThumbnail = false;
+        public int initialLabelOperationLeft;
 
         public Form1()
         {
@@ -45,6 +46,7 @@ namespace YoutubeDownloader
 
             this.Resize += new EventHandler(Form1_Resize);
             labelPlaylist.SizeChanged += new EventHandler(labelPlaylist_SizeChanged);
+            initialLabelOperationLeft = labelOperation.Left;
 
             showClearTitleOf(false);
             CenterLabel();
@@ -65,6 +67,11 @@ namespace YoutubeDownloader
             label8.Left = (this.ClientSize.Width - label8.Width) / 2;
             labelPlaylist.Left = (this.ClientSize.Width - labelPlaylist.Width) / 2;
         }
+        private void CenterLabelOperation()
+        {
+            labelOperation.Left = initialLabelOperationLeft + ((progressBar.Width - labelOperation.Width) / 2);
+        }
+        
         void setToolTip()
         {
             ToolTip toolTip = new ToolTip();
@@ -158,7 +165,7 @@ namespace YoutubeDownloader
                     for (int i = 0; i < playlistVideos.Count; i++)
                     {
                         UpdateProgress((int)((i + 1) * 100 / playlistVideos.Count));
-                        showProgressBarAndOthers(true, $"Fetching \n {getTruncatedIndexTitleString(i, playlistVideos[i].Title)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("Fetching", i, playlistVideos[i].Title)}");
                         token.ThrowIfCancellationRequested();
 
                         var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
@@ -203,7 +210,7 @@ namespace YoutubeDownloader
                     return videoControlValues.ToArray();
                 }
 
-                Thread.Sleep(300); //delay to see the progress bar at 100%
+                Thread.Sleep(100); //delay to see the progress bar at 100%
                 showProgressBarAndOthers(false, "");
                 UpdateProgress(0);
 
@@ -283,8 +290,8 @@ namespace YoutubeDownloader
         {
             if (show)
             {
-                //UpdateLabelOperation(textBoxText);
                 labelOperation.Text = textBoxText;
+                CenterLabelOperation();
                 if (cancellationTokenSource == null)
                     cancellationTokenSource = new CancellationTokenSource();
                 progressBar.Visible = true;
@@ -296,7 +303,6 @@ namespace YoutubeDownloader
             }
             else
             {
-                //UpdateLabelOperation("");
                 labelOperation.Text = "";
                 if (cancellationTokenSource != null)
                     cancellationTokenSource.Dispose();
@@ -555,18 +561,11 @@ namespace YoutubeDownloader
             return new TimeSpan(hours, minutes, seconds);
         }
 
-        private String getTruncatedIndexTitleString(int index, String title)
+        private String getStringAndTruncatedIndexTitleString(String operationString, int index, String title)
         {
-            String newTitle;
+            String newTitle = operationString + ": " + (index + 1).ToString() + ". " + title;
 
-            if (title.Length > 17)
-            {
-                newTitle = (index + 1).ToString() + ". " + title.Substring(0, 17) + ".."; // Add "..." to indicate truncation
-            }
-            else
-                newTitle = (index + 1).ToString() + ". " + title;
-
-            return newTitle;
+            return (newTitle.Length > 70) ? newTitle.Substring(0, 70) + ".." : newTitle;
         }
 
         public static List<SongSegment> getPartsFromDescription(string description, string artist, TimeSpan maxLength)
@@ -829,8 +828,8 @@ namespace YoutubeDownloader
                     else
                         outputFileName = $"{trackNumber}. {sanitizedTitle}.mp3";
 
-                    string progressBarMessage = videoAndAudio ? $"  IV: Splitting mp4s:\n {getTruncatedIndexTitleString(i + 1, outputFileName)}" :
-                                                                $"  III: Splitting mp3s:\n {getTruncatedIndexTitleString(i + 1, outputFileName)}";
+                    string progressBarMessage = videoAndAudio ? $"{getStringAndTruncatedIndexTitleString("IV: Splitting mp4s", i + 1, outputFileName)}" :
+                                                                $"{getStringAndTruncatedIndexTitleString("III: Splitting mp3s", i + 1, outputFileName)}";
 
                     string outputFilePath = Path.Combine(splitOutputDirectory, outputFileName);
 
@@ -927,7 +926,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"  I: Video Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Video Download for", index, videoControl.titleTextBox.Text)}");
 
                             using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
                             {
@@ -954,7 +953,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"  II: Audio Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Audio Download for", index, videoControl.titleTextBox.Text)}");
 
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
@@ -976,7 +975,7 @@ namespace YoutubeDownloader
                             return;
                         }
 
-                        showProgressBarAndOthers(true, $"  III: Convert to mp4:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("III: Convert to mp4", index, videoControl.titleTextBox.Text)}");
 
                         await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
 
@@ -1000,7 +999,7 @@ namespace YoutubeDownloader
                                 }
                             }
 
-                            showProgressBarAndOthers(true, "  IV: Splitting tracks");
+                            showProgressBarAndOthers(true, "IV: Splitting tracks");
 
                             try
                             {
@@ -1130,7 +1129,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"  I: Audio Download for:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Audio Download for", index, videoControl.titleTextBox.Text)}");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
 
@@ -1151,7 +1150,7 @@ namespace YoutubeDownloader
                             return;
                         }
 
-                        showProgressBarAndOthers(true, $"  II: Convert to mp3:\n {getTruncatedIndexTitleString(index, videoControl.titleTextBox.Text)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Convert to mp3", index, videoControl.titleTextBox.Text)}");
 
                         await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
 
@@ -1222,7 +1221,7 @@ namespace YoutubeDownloader
                                     string segmentArtist = segments[index2].Artist;
                                     index2++;
 
-                                    showProgressBarAndOthers(true, $"  IV: Setting tags for \n {getTruncatedIndexTitleString(index2, fileNameWithoutExtension)}");
+                                    showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("IV: Setting tags for", index2, fileNameWithoutExtension)}");
 
                                     UpdateProgress((int)(index2 * 100 / segments.Count));
 

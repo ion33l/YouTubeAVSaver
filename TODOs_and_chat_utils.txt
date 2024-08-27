@@ -22,7 +22,7 @@ v 13) add a "open in explorer" button for the download path
 v 14) "clear title of" to be shown only for playlists and message if not found (try for empty string)
 v 15) add an info (qustion mark - ?) to the radio buttons
 v 16) make fetching operation show on operation label and make it cancellable
-x17) make the operationsLabel more roomy (rearrange the progressbar and label)
+v 17) make the operationsLabel more roomy (rearrange the progressbar and label)
 x18) Optional: try refactoring downloadAudioOnly and downloadAudioVideo functions
 
 

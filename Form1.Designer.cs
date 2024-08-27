@@ -68,7 +68,7 @@
             // 
             youtubeURLTextBox.Location = new Point(136, 46);
             youtubeURLTextBox.Name = "youtubeURLTextBox";
-            youtubeURLTextBox.Size = new Size(394, 23);
+            youtubeURLTextBox.Size = new Size(400, 23);
             youtubeURLTextBox.TabIndex = 0;
             youtubeURLTextBox.KeyDown += youtubeURLTextBox_KeyDown;
             // 
@@ -87,7 +87,7 @@
             // 
             txtFolderPath.Location = new Point(136, 138);
             txtFolderPath.Name = "txtFolderPath";
-            txtFolderPath.Size = new Size(394, 23);
+            txtFolderPath.Size = new Size(400, 23);
             txtFolderPath.TabIndex = 2;
             // 
             // browseButton
@@ -104,7 +104,7 @@
             // cancelButton
             // 
             cancelButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            cancelButton.Location = new Point(546, 2);
+            cancelButton.Location = new Point(546, 20);
             cancelButton.Name = "cancelButton";
             cancelButton.Size = new Size(75, 23);
             cancelButton.TabIndex = 3;
@@ -274,9 +274,9 @@
             // 
             // progressBar
             // 
-            progressBar.Location = new Point(136, 2);
+            progressBar.Location = new Point(136, 20);
             progressBar.Name = "progressBar";
-            progressBar.Size = new Size(394, 23);
+            progressBar.Size = new Size(400, 23);
             progressBar.TabIndex = 0;
             // 
             // fetchButton
@@ -304,7 +304,7 @@
             // 
             labelOperation.AutoSize = true;
             labelOperation.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            labelOperation.Location = new Point(2, 2);
+            labelOperation.Location = new Point(136, 2);
             labelOperation.Name = "labelOperation";
             labelOperation.Size = new Size(0, 15);
             labelOperation.TabIndex = 20;
@@ -315,7 +315,7 @@
             labelClearTitleOf.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
             labelClearTitleOf.Location = new Point(17, 550);
             labelClearTitleOf.Name = "labelClearTitleOf";
-            labelClearTitleOf.Size = new Size(79, 15);
+            labelClearTitleOf.Size = new Size(80, 15);
             labelClearTitleOf.TabIndex = 21;
             labelClearTitleOf.Text = "Clear titles of:";
             // 
