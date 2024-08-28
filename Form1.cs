@@ -565,7 +565,7 @@ namespace YoutubeDownloader
         {
             String newTitle = operationString + ": " + (index + 1).ToString() + ". " + title;
 
-            return (newTitle.Length > 70) ? newTitle.Substring(0, 70) + ".." : newTitle;
+            return (newTitle.Length > 60) ? newTitle.Substring(0, 60) + ".." : newTitle;
         }
 
         public static List<SongSegment> getPartsFromDescription(string description, string artist, TimeSpan maxLength)
@@ -740,7 +740,7 @@ namespace YoutubeDownloader
             }, token);
         }
 
-        private Task ExecuteFFMpegCommand(string arguments)
+        private Task <bool> ExecuteFFMpegCommand(string arguments)
         {
             if (cancellationTokenSource == null)
                 cancellationTokenSource = new CancellationTokenSource();
@@ -775,17 +775,18 @@ namespace YoutubeDownloader
                         if (token.IsCancellationRequested)
                         {
                             process.Kill();
-                            break;
+                            ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = false });
+                            return false;
                         }
                     }
+
+                    ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = false });
+                    return process.ExitCode == 0;
                 }
-
-                ((IProgress<ProgressInfo>)progressReporter).Report(new ProgressInfo { Value = 0, Visible = false });
-
             }, token);
         }
 
-        private Task CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool videoAndAudio)
+        private Task <bool> CombineAudioAndVideo(string videoPath, string audioPath, string outputPath, bool videoAndAudio)
         {
             string arguments;
             totalDuration = "";
@@ -840,7 +841,10 @@ namespace YoutubeDownloader
                     string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
 
                     // Execute ffmpeg process
-                    await ExecuteFFMpegCommand(arguments);
+                    bool executed = await ExecuteFFMpegCommand(arguments);
+                    if (executed == false)
+                        return outputFiles;
+
                     // Add the output file path to the list
                     outputFiles.Add(outputFilePath);
 
@@ -977,7 +981,13 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("III: Convert to mp4", index, videoControl.titleTextBox.Text)}");
 
-                        await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
+                        bool executed = await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
+                        if (!executed)
+                        {
+                            showProgressBarAndOthers(false, "");
+                            MessageBox.Show("Aborted all operations");
+                            return;
+                        }
 
                         showProgressBarAndOthers(false, "");
 
@@ -1152,7 +1162,13 @@ namespace YoutubeDownloader
 
                         showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Convert to mp3", index, videoControl.titleTextBox.Text)}");
 
-                        await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
+                        bool executed = await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
+                        if (!executed)
+                        {
+                            showProgressBarAndOthers(false, "");
+                            MessageBox.Show("Aborted all operations");
+                            return;
+                        }
 
                         showProgressBarAndOthers(false, "");
 

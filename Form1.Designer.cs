@@ -75,7 +75,7 @@
             // downloadButton
             // 
             downloadButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            downloadButton.Location = new Point(284, 550);
+            downloadButton.Location = new Point(284, 570);
             downloadButton.Name = "downloadButton";
             downloadButton.Size = new Size(120, 40);
             downloadButton.TabIndex = 1;
@@ -392,7 +392,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(640, 602);
+            ClientSize = new Size(640, 620);
             Controls.Add(openPathButton);
             Controls.Add(labelPlaylist);
             Controls.Add(checkBox2);

@@ -6,9 +6,7 @@ v 3) For albums in one file, make them split into single files with tags based o
 v 3.1) Option for downloading the thumbnail of video (thumnail.jpg) or playlist (named cover.jpg)
 v 3.2) Checkbox for looking in the description for "Video and Audio" splitting times - should use the same form as the audio splitting.
 x3.3) More thorough testing:
-x    - cancel when least expected
-x    - make cancel buttons work for all the things intended (eg. cancel in splitter form should cancel all the splitting)
-
+v    - make cancel buttons work for all the things intended (eg. cancel in splitter form should cancel all the splitting)
 v 4) Optional: Adaptive menu (for the case when maximize is done) - adaptive scrollable panel
 v 5) See how it behaves on different screen resolutions.
 v 6) More verbouse text on the left of the progress bar.
@@ -24,7 +22,7 @@ v 15) add an info (qustion mark - ?) to the radio buttons
 v 16) make fetching operation show on operation label and make it cancellable
 v 17) make the operationsLabel more roomy (rearrange the progressbar and label)
 x18) Optional: try refactoring downloadAudioOnly and downloadAudioVideo functions
-
+x19) Optional: make the progress bar and last operation appear untill the next operation begins (now it dissapears and the user can think the processing is over)
 
 ChatGPT utils:
 
