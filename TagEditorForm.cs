@@ -17,7 +17,7 @@ namespace YoutubeDownloader
         public string Year { get; private set; }
         public string Genre { get; private set; }
 
-        public TagEditorForm(string defaultArtist, string defaultAlbum, string defaultYear, string defaultGenre)
+        public TagEditorForm(string defaultArtist, string defaultAlbum, string defaultYear, string defaultGenre, string title)
         {
             InitializeComponent();
 
@@ -26,6 +26,7 @@ namespace YoutubeDownloader
             txtAlbum.Text = defaultAlbum;
             txtYear.Text = defaultYear;
             txtGenre.Text = defaultGenre;
+            label2.Text = "Editing tags for: " + title;
 
             // Attach KeyDown event handler to all textboxes
             txtArtist.KeyDown += TextBox_KeyDown;

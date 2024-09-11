@@ -165,7 +165,7 @@ namespace YoutubeDownloader
                     for (int i = 0; i < playlistVideos.Count; i++)
                     {
                         UpdateProgress((int)((i + 1) * 100 / playlistVideos.Count));
-                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("Fetching", i, playlistVideos[i].Title)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("Fetching", i, playlistVideos[i].Title)}", true);
                         token.ThrowIfCancellationRequested();
 
                         var videoId = YoutubeExplode.Videos.VideoId.Parse(playlistVideos[i].Url);
@@ -228,13 +228,12 @@ namespace YoutubeDownloader
                                         .OrderByDescending(s => s.Bitrate)
                                         .Select(s => new
                                         {
-                                            audioSize = (s.Size.Bytes)// / (1024.0 * 1024.0)).ToString("0.##")// + " MB"
+                                            audioSize = (s.Size.Bytes)
                                         })
                                         .Take(1)
                                         .SingleOrDefault();
 
                 var resolutionSizeList = videoStreams
-                                        //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                         .OrderByDescending(s => s.VideoQuality)
                                         .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
                                         .Select(s => new
@@ -286,7 +285,7 @@ namespace YoutubeDownloader
             }
         }
 
-        public void showProgressBarAndOthers(bool show, string textBoxText)
+        public void showProgressBarAndOthers(bool show, string textBoxText, bool fromFetch = false)
         {
             if (show)
             {
@@ -297,9 +296,12 @@ namespace YoutubeDownloader
                 progressBar.Visible = true;
                 cancelButton.Show();
                 downloadButton.Enabled = false;
-                browseButton.Enabled = false;
                 fetchButton.Enabled = false;
-                openPathButton.Enabled = false;
+                if (!fromFetch)
+                {
+                    browseButton.Enabled = false;
+                    openPathButton.Enabled = false;
+                }
             }
             else
             {
@@ -641,7 +643,9 @@ namespace YoutubeDownloader
                     else
                         artist = playlistVideos[0].Author.ToString();
 
-                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
+                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Title, @"\b\d{4}\b").ToString();
+                    if (year == "")
+                        year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
                     if (year == "")
                         year = videoDetails.UploadDate.Year.ToString();
                 }
@@ -663,8 +667,10 @@ namespace YoutubeDownloader
                     }
                     else
                         artist = videoDetails.Author.ToString();
-                    /*TODO - refactor*/
-                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
+
+                    year = System.Text.RegularExpressions.Regex.Match(videoDetails.Title, @"\b\d{4}\b").ToString();
+                    if (year == "")
+                        year = System.Text.RegularExpressions.Regex.Match(videoDetails.Description, @"\b\d{4}\b").ToString();
                     if (year == "")
                         year = videoDetails.UploadDate.Year.ToString();
                 }
@@ -838,7 +844,11 @@ namespace YoutubeDownloader
                     UpdateProgress((int)((i + 1) * 100 / segments.Count));
 
                     // Build ffmpeg command arguments
-                    string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
+                    string arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy -avoid_negative_ts 1 \"{outputFilePath}\"";
+                    //TODO17 - search for better ffmpeg options for copy
+
+                    if (!videoAndAudio)
+                        arguments = $"-y -i \"{toSplitFilePath}\" -ss {startTime} -t {durationString} -c copy \"{outputFilePath}\"";
 
                     // Execute ffmpeg process
                     bool executed = await ExecuteFFMpegCommand(arguments);
@@ -930,7 +940,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Video Download for", index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Downloading Video for", index, videoControl.titleTextBox.Text)}");
 
                             using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
                             {
@@ -957,7 +967,7 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Audio Download for", index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Downloading Audio for", index, videoControl.titleTextBox.Text)}");
 
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
@@ -979,7 +989,7 @@ namespace YoutubeDownloader
                             return;
                         }
 
-                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("III: Convert to mp4", index, videoControl.titleTextBox.Text)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("III: Converting to mp4", index, videoControl.titleTextBox.Text)}");
 
                         bool executed = await CombineAudioAndVideo(videoTempPath, audioTempPath, outputFilePath, true);
                         if (!executed)
@@ -1052,7 +1062,7 @@ namespace YoutubeDownloader
             MessageBox.Show("Download finished!", "YoutubeDownloader");
         }
 
-        async void downloadAudioOnly(string URL, string downloadPath)
+        async void downloadAudioOnly(string URL, string downloadPathFromUI)
         {
             bool playlistIsAlbum = false;
             bool itemIsAlbum = false;
@@ -1061,6 +1071,7 @@ namespace YoutubeDownloader
                     album = "",
                     year = "",
                     genre = "";
+            string downloadPath = downloadPathFromUI;
 
             progressBar.Value = 0;
             var progress = new Progress<double>(percent =>
@@ -1086,7 +1097,7 @@ namespace YoutubeDownloader
 
                     (artist, album, year, genre) = await getTagsFromURL(URL);
 
-                    using (var tagEditor = new TagEditorForm(artist, album, year, genre))
+                    using (var tagEditor = new TagEditorForm(artist, album, year, genre, album)) //for playlists, the title is saved in the album variable
                     {
                         if (tagEditor.ShowDialog() == DialogResult.OK)
                         {
@@ -1098,7 +1109,7 @@ namespace YoutubeDownloader
                         }
                     }
 
-                    string albumFolderPath = CreateAlbumFolders(downloadPath, artist, album, year);
+                    string albumFolderPath = CreateAlbumFolders(downloadPathFromUI, artist, album, year);
 
                     if (albumFolderPath != null)
                         downloadPath = albumFolderPath;
@@ -1139,10 +1150,9 @@ namespace YoutubeDownloader
 
                         try
                         {
-                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Audio Download for", index, videoControl.titleTextBox.Text)}");
+                            showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Downloading Audio for", index, videoControl.titleTextBox.Text)}");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
-
                                 await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource.Token);
                             }
                             showProgressBarAndOthers(false, "");
@@ -1160,7 +1170,7 @@ namespace YoutubeDownloader
                             return;
                         }
 
-                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Convert to mp3", index, videoControl.titleTextBox.Text)}");
+                        showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("II: Converting to mp3", index, videoControl.titleTextBox.Text)}");
 
                         bool executed = await CombineAudioAndVideo("", audioTempPath, outputFilePath, false);
                         if (!executed)
@@ -1175,7 +1185,6 @@ namespace YoutubeDownloader
                         if (playlistIsAlbum)
                         {
                             await SetMp3Tags(outputFilePath, noLabel.Text, artist, trackTitle, album, year, genre);
-
                         }
 
                         var videoDetails = await ytClient.Videos.GetAsync(url);
@@ -1193,7 +1202,7 @@ namespace YoutubeDownloader
                                 itemIsAlbum = true;
                                 (artist, album, year, genre) = await getTagsFromURL(url);
 
-                                using (var tagEditor = new TagEditorForm(artist, album, year, genre))
+                                using (var tagEditor = new TagEditorForm(artist, album, year, genre, videoDetails.Title))
                                 {
                                     if (tagEditor.ShowDialog() == DialogResult.OK)
                                     {
@@ -1203,9 +1212,11 @@ namespace YoutubeDownloader
                                         year = tagEditor.Year;
                                         genre = tagEditor.Genre;
                                     }
+                                    else if (tagEditor.ShowDialog() == DialogResult.Cancel)
+                                        return;
                                 }
 
-                                string albumFolderPath = CreateAlbumFolders(downloadPath, artist, album, year);
+                                string albumFolderPath = CreateAlbumFolders(downloadPathFromUI, artist, album, year);
 
                                 if (albumFolderPath != null)
                                     downloadPath = albumFolderPath;
@@ -1225,7 +1236,7 @@ namespace YoutubeDownloader
 
                                 showProgressBarAndOthers(false, "");
 
-                                List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, downloadPath, false, progress);
+                                List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, albumFolderPath, false, progress);
                                 //function definition: spliFileIntoSegments(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory, bool audioOnly)
 
                                 Thread.Sleep(500); //delay for the writing of the file to complete
@@ -1247,13 +1258,17 @@ namespace YoutubeDownloader
                                     showProgressBarAndOthers(false, "");
                                 }
 
+                                if (downloadThumbnail == true)
+                                    DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", true, false);
+
                                 if (!keepBigFile)
                                     try { File.Delete(outputFilePath); } catch { }
                             }
                         }
 
-                        if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
+                        if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false) && itemIsAlbum == false) //if itemIsAlbum == true, the cover was already downloaded above
                             DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
+
                         // Clean up temporary files
                         try
                         {
@@ -1302,7 +1317,16 @@ namespace YoutubeDownloader
 
             ClearPanel();
             showClearTitleOf(false);
-            UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
+
+            try
+            {
+                UpdatePanel(await getPanelVideosDetailsAsync(videoUrl));
+            }
+            catch (Exception ex)
+            {
+                showProgressBarAndOthers(false, "");
+                MessageBox.Show($"An error occurred while fetching.\nFor now, the app can't download age restricted videos.\n{ex.Message}");
+            }
             
             fetchButton.Text = originalText;
             fetchButton.Enabled = true;
@@ -1332,8 +1356,8 @@ namespace YoutubeDownloader
         {
             string originalText = downloadButton.Text;
             downloadButton.Text = "DOWNLOADING";
-            downloadButton.Enabled = false;
-
+            showProgressBarAndOthers(true, "");
+            
             var fetchedVideoDetails = GetFetchedVideoDetails();
 
             var videoUrl = lastFetchedVideoUrl;
@@ -1343,6 +1367,7 @@ namespace YoutubeDownloader
             {
                 MessageBox.Show("Please enter the Youtube URL and fetch its details before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 downloadButton.Enabled = true;
+                showProgressBarAndOthers(false, "");
                 downloadButton.Text = "DOWNLOAD";
                 return;
             }
@@ -1351,6 +1376,7 @@ namespace YoutubeDownloader
             {
                 MessageBox.Show("Please select download path before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 downloadButton.Enabled = true;
+                showProgressBarAndOthers(false, "");
                 downloadButton.Text = "DOWNLOAD";
                 return;
             }
@@ -1368,7 +1394,7 @@ namespace YoutubeDownloader
             }
 
             downloadButton.Text = originalText;
-            downloadButton.Enabled = true;
+            showProgressBarAndOthers(false, "");
         }
 
         private void buttonClearText_Click(object sender, EventArgs e)

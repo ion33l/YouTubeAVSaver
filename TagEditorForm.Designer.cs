@@ -26,6 +26,7 @@
             btnOk = new Button();
             btnCancel = new Button();
             label1 = new Label();
+            label2 = new Label();
             SuspendLayout();
             // 
             // txtArtist
@@ -137,11 +138,22 @@
             label1.Text = "Found these attributes. Confirm or correct them:";
             label1.TextAlign = ContentAlignment.MiddleRight;
             // 
+            // label2
+            // 
+            label2.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label2.Location = new Point(13, 1);
+            label2.Margin = new Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(282, 24);
+            label2.TabIndex = 10;
+            label2.TextAlign = ContentAlignment.MiddleCenter;
+            // 
             // TagEditorForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(352, 347);
+            Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(txtArtist);
             Controls.Add(txtAlbum);
@@ -161,5 +173,6 @@
         }
 
         private Label label1;
+        private Label label2;
     }
 }
