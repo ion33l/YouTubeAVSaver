@@ -32,13 +32,14 @@ namespace YoutubeDownloader
             // Initialize the drag timer
             dragTimer = new System.Windows.Forms.Timer();
             dragTimer.Interval = 10; // 10ms for long press
-            dragTimer.Tick += DragTimer_Tick;
+            dragTimer.Tick += DragTimer_Tick!;
             this.isAudioAndVideo = isAudioAndVideo;
             this.totalDuration = totalDuration;
             btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnAdd.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             dataGridView1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            this.FormClosing += new FormClosingEventHandler(SplitterForm_FormClosing!);
 
         }
 
@@ -91,14 +92,14 @@ namespace YoutubeDownloader
             UpdateIndexColumn();
 
             // Event handlers for drag and drop
-            dataGridView1.MouseDown += new MouseEventHandler(dataGridView1_MouseDown);
-            dataGridView1.MouseMove += new MouseEventHandler(dataGridView1_MouseMove);
-            dataGridView1.MouseUp += new MouseEventHandler(dataGridView1_MouseUp);
-            dataGridView1.DragOver += new DragEventHandler(dataGridView1_DragOver);
-            dataGridView1.DragDrop += new DragEventHandler(dataGridView1_DragDrop);
-            dataGridView1.KeyDown += new KeyEventHandler(Form1_KeyDown);
-            dataGridView1.SizeChanged += DataGridView1_SizeChanged;
-            dataGridView1.CellValueChanged += DataGridView1_CellValueChanged;
+            dataGridView1.MouseDown += new MouseEventHandler(dataGridView1_MouseDown!);
+            dataGridView1.MouseMove += new MouseEventHandler(dataGridView1_MouseMove!);
+            dataGridView1.MouseUp += new MouseEventHandler(dataGridView1_MouseUp!);
+            dataGridView1.DragOver += new DragEventHandler(dataGridView1_DragOver!);
+            dataGridView1.DragDrop += new DragEventHandler(dataGridView1_DragDrop!);
+            dataGridView1.KeyDown += new KeyEventHandler(Form1_KeyDown!);
+            dataGridView1.SizeChanged += DataGridView1_SizeChanged!;
+            dataGridView1.CellValueChanged += DataGridView1_CellValueChanged!;
         }
 
         private TimeSpan ParseTime(string inputTime)
@@ -137,13 +138,13 @@ namespace YoutubeDownloader
                 e.ColumnIndex == dataGridView1.Columns["End_time"].Index)
             {
 
-                string cellValue = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+                string cellValue = dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()!;
 
-                TimeSpan sanitizedValue = ParseTime(cellValue);
+                TimeSpan sanitizedValue = ParseTime(cellValue!);
 
                 if(e.ColumnIndex == dataGridView1.Columns["Start_time"].Index)
                 {
-                    TimeSpan existingStop = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["End_time"].Index].Value.ToString());
+                    TimeSpan existingStop = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["End_time"].Index].Value.ToString()!);
 
                     if (sanitizedValue > existingStop)
                         sanitizedValue = existingStop;
@@ -151,7 +152,7 @@ namespace YoutubeDownloader
                 }
                 if (e.ColumnIndex == dataGridView1.Columns["End_time"].Index)
                 {
-                    TimeSpan existingStart = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["Start_time"].Index].Value.ToString());
+                    TimeSpan existingStart = ParseTime(dataGridView1.Rows[e.RowIndex].Cells[dataGridView1.Columns["Start_time"].Index].Value.ToString()!);
 
                     if (sanitizedValue < existingStart)
                         sanitizedValue = existingStart;
@@ -220,7 +221,7 @@ namespace YoutubeDownloader
             {
                 if (e.Effect == DragDropEffects.Move)
                 {
-                    DataGridViewRow rowToMove = e.Data.GetData(typeof(DataGridViewRow)) as DataGridViewRow;
+                    DataGridViewRow? rowToMove = e.Data?.GetData(typeof(DataGridViewRow)) as DataGridViewRow;
 
                     if (rowToMove != null && rowIndexFromMouseDown >= 0 && rowIndexFromMouseDown < dataGridView1.Rows.Count)
                     {
@@ -285,8 +286,8 @@ namespace YoutubeDownloader
             {
                 if (row.IsNewRow) continue;
 
-                var startTime = TimeSpan.Parse(row.Cells[1].Value.ToString());
-                var endTime = TimeSpan.Parse(row.Cells[2].Value.ToString());
+                var startTime = TimeSpan.Parse(row.Cells[1].Value.ToString()!);
+                var endTime = TimeSpan.Parse(row.Cells[2].Value.ToString()!);
                 var title = row.Cells[3].Value.ToString();
                 var artist = row.Cells[4].Value.ToString();
 
@@ -301,14 +302,37 @@ namespace YoutubeDownloader
                 SongSegments.Add(segment);
             }
 
-            DialogResult = DialogResult.OK;
+            this.DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private void SplitterForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (this.DialogResult != DialogResult.OK)
+            {
+                DialogResult result = MessageBox.Show(
+                    "Are you sure?\n\rThis cancels all the progress and all the future operations",
+                    "Confirm Cancellling",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true; // This cancels the form closing
+                }
+            }
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
+            this.DialogResult = DialogResult.Cancel;
             Close();
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            // Ensure this is how you close the form.
+            this.Close();
         }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)

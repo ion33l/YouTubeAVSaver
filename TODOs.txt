@@ -1,0 +1,30 @@
+TODOs:
+
+v 1) Progress bar for converting to mp3 or mp4 (inter-process communication..)
+v 2) Tags for downloading an audio playlist that is confirmed by user to be an album.
+v 3) For albums in one file, make them split into single files with tags based on the description or manual song list with times.
+v 3.1) Option for downloading the thumbnail of video (thumnail.jpg) or playlist (named cover.jpg)
+v 3.2) Checkbox for looking in the description for "Video and Audio" splitting times - should use the same form as the audio splitting.
+v 3.3) More thorough testing - make cancel buttons work for all the things intended (eg. cancel in splitter form should cancel all the splitting)
+v 4) Optional: Adaptive menu (for the case when maximize is done) - adaptive scrollable panel
+v 5) See how it behaves on different screen resolutions.
+v 6) More verbouse text on the left of the progress bar.
+v 7) Nice to have: be able to change the artist on the Splitter Form if the request is for an audio file (for compilations with multiple artists..)
+v 8) Make sure the start and stop times in the splitting form are ascending and do not exceed 0 or max length, make it 00:00:00 if it's rubbish
+v 9) Add a keep initial file button in the splitting form.
+v 10) await of splitting to show the finnish message only after the splitting
+v 11) download parts for video and audio in separate folder
+v 12) show playlist name on the main screen when downloading a playlist
+v 13) add a "open in explorer" button for the download path
+v 14) "clear title of" to be shown only for playlists and message if not found (try for empty string)
+v 15) add an info (qustion mark - ?) to the radio buttons
+v 16) make fetching operation show on operation label and make it cancellable
+v 17) make the operationsLabel more roomy (rearrange the progressbar and label)
+
+x18) Nice to have: improve the ffmpeg splitting of video files, now (with the copy option) the first few seconds are audio only. Re-encoding would take to much..
+x19) Nice to have: See if logging-in is possible (for fetching and downloading age restricted videos)
+
+x20) Optional: make the progress bar and last operation appear until the next operation begins (now it dissapears and the user could think the operations are over - isLastOperation variable in showProgressBarAndOthers)
+x21) Optional: try refactoring downloadAudioOnly and downloadAudioVideo functions by merging them
+
+x22) Future: add a download transcript button that opens a new form with the transcript and various options such as: AI-made summary, most used words, etc

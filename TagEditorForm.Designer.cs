@@ -11,7 +11,6 @@
         private System.Windows.Forms.Label lblYear;
         private System.Windows.Forms.Label lblGenre;
         private System.Windows.Forms.Button btnOk;
-        private System.Windows.Forms.Button btnCancel;
 
         private void InitializeComponent()
         {
@@ -24,7 +23,6 @@
             lblYear = new Label();
             lblGenre = new Label();
             btnOk = new Button();
-            btnCancel = new Button();
             label1 = new Label();
             label2 = new Label();
             SuspendLayout();
@@ -107,7 +105,7 @@
             // 
             // btnOk
             // 
-            btnOk.Location = new Point(77, 272);
+            btnOk.Location = new Point(110, 270);
             btnOk.Margin = new Padding(5, 4, 5, 4);
             btnOk.Name = "btnOk";
             btnOk.Size = new Size(101, 36);
@@ -116,24 +114,13 @@
             btnOk.UseVisualStyleBackColor = true;
             btnOk.Click += btnOk_Click;
             // 
-            // btnCancel
-            // 
-            btnCancel.Location = new Point(202, 272);
-            btnCancel.Margin = new Padding(5, 4, 5, 4);
-            btnCancel.Name = "btnCancel";
-            btnCancel.Size = new Size(101, 36);
-            btnCancel.TabIndex = 5;
-            btnCancel.Text = "Cancel";
-            btnCancel.UseVisualStyleBackColor = true;
-            btnCancel.Click += btnCancel_Click;
-            // 
             // label1
             // 
             label1.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label1.Location = new Point(15, 12);
+            label1.Location = new Point(15, 25);
             label1.Margin = new Padding(5, 0, 5, 0);
             label1.Name = "label1";
-            label1.Size = new Size(322, 47);
+            label1.Size = new Size(322, 24);
             label1.TabIndex = 6;
             label1.Text = "Found these attributes. Confirm or correct them:";
             label1.TextAlign = ContentAlignment.MiddleRight;
@@ -144,7 +131,7 @@
             label2.Location = new Point(13, 1);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
-            label2.Size = new Size(282, 24);
+            label2.Size = new Size(322, 24);
             label2.TabIndex = 10;
             label2.TextAlign = ContentAlignment.MiddleCenter;
             // 
@@ -164,10 +151,10 @@
             Controls.Add(lblYear);
             Controls.Add(lblGenre);
             Controls.Add(btnOk);
-            Controls.Add(btnCancel);
             Margin = new Padding(5, 4, 5, 4);
             Name = "TagEditorForm";
             Text = "Edit Tags";
+            Load += TagEditorForm_Load;
             ResumeLayout(false);
             PerformLayout();
         }

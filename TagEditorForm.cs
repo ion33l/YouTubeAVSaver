@@ -21,18 +21,26 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
 
+            label2.Text = "Edit tags for: " + ((title.Length > 30) ? title.Substring(0, 30) + ".." : title);
+            //return (newTitle.Length > 60) ? newTitle.Substring(0, 60) + ".." : newTitle;
+
             // Set default values
             txtArtist.Text = defaultArtist;
             txtAlbum.Text = defaultAlbum;
             txtYear.Text = defaultYear;
             txtGenre.Text = defaultGenre;
-            label2.Text = "Editing tags for: " + title;
+
+            Artist = defaultArtist;
+            Album = defaultAlbum;
+            Year = defaultYear;
+            Genre = defaultGenre;
 
             // Attach KeyDown event handler to all textboxes
-            txtArtist.KeyDown += TextBox_KeyDown;
-            txtAlbum.KeyDown += TextBox_KeyDown;
-            txtYear.KeyDown += TextBox_KeyDown;
-            txtGenre.KeyDown += TextBox_KeyDown;
+            txtArtist.KeyDown += TextBox_KeyDown!;
+            txtAlbum.KeyDown += TextBox_KeyDown!;
+            txtYear.KeyDown += TextBox_KeyDown!;
+            txtGenre.KeyDown += TextBox_KeyDown!;
+            this.FormClosing += new FormClosingEventHandler(TagEditorForm_FormClosing!);
         }
 
         private void btnOk_Click(object sender, EventArgs e)
@@ -40,8 +48,8 @@ namespace YoutubeDownloader
             // Get values from text boxes
             Artist = txtArtist.Text;
             Album = txtAlbum.Text;
-            Genre = txtGenre.Text;
             Year = txtYear.Text;
+            Genre = txtGenre.Text;
 
             this.DialogResult = DialogResult.OK;
             this.Close();
@@ -51,6 +59,22 @@ namespace YoutubeDownloader
         {
             this.DialogResult = DialogResult.Cancel;
             this.Close();
+        }
+        private void TagEditorForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (this.DialogResult != DialogResult.OK) 
+            {
+                DialogResult result = MessageBox.Show(
+                    "Are you sure?\n\rThis cancels all the progress and all the future operations",
+                    "Confirm Cancellling",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true; // This cancels the form closing
+                }
+            }
         }
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -62,6 +86,11 @@ namespace YoutubeDownloader
                 // Call the button click event handler
                 btnOk_Click(this, new EventArgs());
             }
+        }
+
+        private void TagEditorForm_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

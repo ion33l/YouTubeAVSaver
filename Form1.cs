@@ -2,21 +2,17 @@ using AngleSharp.Dom;
 
 using YoutubeExplode;
 using YoutubeExplode.Common;
-using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
 using System.Diagnostics;
-using System.Threading;
-using System;
 using System.Text.RegularExpressions;
-using System.Diagnostics.Eventing.Reader;
 
 namespace YoutubeDownloader
 {
     public partial class Form1 : Form
     {
         public YoutubeClient ytClient;
-        private CancellationTokenSource cancellationTokenSource;
+        private CancellationTokenSource? cancellationTokenSource;
         private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)> videoControlValues =
                 new List<(bool, int, string, string, string[], string, string[], string)>();
         private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, string url)> videoControlReferences =
@@ -44,8 +40,8 @@ namespace YoutubeDownloader
                 progressBar.Visible = info.Visible;
             });
 
-            this.Resize += new EventHandler(Form1_Resize);
-            labelPlaylist.SizeChanged += new EventHandler(labelPlaylist_SizeChanged);
+            this.Resize += new EventHandler(Form1_Resize!);
+            labelPlaylist.SizeChanged += new EventHandler(labelPlaylist_SizeChanged!);
             initialLabelOperationLeft = labelOperation.Left;
 
             showClearTitleOf(false);
@@ -124,24 +120,6 @@ namespace YoutubeDownloader
             }
         }
 
-        private (bool Check, int No, string Title, string Thumbnail, string SelectedResolution)[]
-             GetFetchedVideoDetails()   /*TODO remove this if not used*/
-        {
-            var fetchedVideoDetails = new List<(bool, int, string, string, string)>();
-
-            foreach (var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) in videoControlReferences)
-            {
-                bool isChecked = checkBox.Checked;
-                int no = int.Parse(noLabel.Text); // Assuming the label text is the number
-                string title = titleTextBox.Text;
-                string thumbnail = pictureBox.ImageLocation;
-                string selectedResolution = resolutionComboBox.SelectedItem?.ToString() ?? "N/A";
-
-                fetchedVideoDetails.Add((isChecked, no, title, thumbnail, selectedResolution));
-            }
-
-            return fetchedVideoDetails.ToArray();
-        }
 
         async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]>
              getPanelVideosDetailsAsync(string url)
@@ -176,19 +154,18 @@ namespace YoutubeDownloader
                                                 .OrderByDescending(s => s.Bitrate)
                                                 .Select(s => new
                                                 {
-                                                    audioSize = (s.Size.Bytes)// / (1024.0 * 1024.0)).ToString("0.##")// + " MB"
+                                                    audioSize = (s.Size.Bytes)
                                                 })
                                                 .Take(1)
                                                 .SingleOrDefault();
 
                         var resolutionSizeList = videoStreams
-                                                //.Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
                                                 .OrderByDescending(s => s.VideoQuality)
                                                 .DistinctBy(s => s.VideoQuality.Label, StringComparer.OrdinalIgnoreCase)
                                                 .Select(s => new
                                                 {
                                                     Resolution = s.VideoQuality.Label,
-                                                    videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
+                                                    videoSize = ((s.Size.Bytes + audioStreamInfo!.audioSize) / (1024.0 * 1024.0) * 1.00308).ToString("0.##") + " MB" //after converting it gets just a bit larger
                                                 })
                                                 .ToList();
 
@@ -239,7 +216,7 @@ namespace YoutubeDownloader
                                         .Select(s => new
                                         {
                                             Resolution = s.VideoQuality.Label,
-                                            videoSize = ((s.Size.Bytes + audioStreamInfo.audioSize) / (1024.0 * 1024.0)).ToString("0.##") + " MB"
+                                            videoSize = ((s.Size.Bytes + audioStreamInfo!.audioSize) / (1024.0 * 1024.0)).ToString("0.##") + " MB"
                                         })
                                         .ToList();
 
@@ -389,32 +366,28 @@ namespace YoutubeDownloader
                 videoPanel.Controls.Add(noLabel);
 
                 // Title (TextBox)
-
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
                     Width = ((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 225) : (scrollablePanel.Width - 225 - scrollbarWidth),  /* sum of all other items + bug if scrollable panel exceeds the visible panel. the scrollbar appears*/
-                    //Width = scrollablePanel.Width - 225 - scrollbarWidth,
                     Text = video.Title,
                     BackColor = white
                 };
                 titleTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
                 videoPanel.Controls.Add(titleTextBox);
-
+                
                 // Thumbnail (PictureBox)
                 PictureBox pictureBox = new PictureBox
                 {
                     Location = new Point(330, 25),
                     Size = new Size(50, 50),
-                    ImageLocation = video.Thumbnail, // TODO - Use actual thumbnail path
-                    //Image = thumbnailImage,// ?? Properties.Resources.DefaultImage,
+                    ImageLocation = video.Thumbnail,
                     SizeMode = PictureBoxSizeMode.StretchImage,
                     BackColor = backgroundColor
                 };
                 //videoPanel.Controls.Add(pictureBox); //decided not to show thumnails because of its overhead
-
+                
                 // Resolution (ComboBox)
-
                 ComboBox resolutionComboBox = new ComboBox
                 {
                     Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
@@ -732,7 +705,7 @@ namespace YoutubeDownloader
                         tag.Album = album;
                         tag.Year = uint.Parse(year);
 
-                        var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON"), TagLib.StringType.Latin1);
+                        var genreFrame = new TagLib.Id3v2.TextInformationFrame(ident: TagLib.ByteVector.FromString("TCON", TagLib.StringType.Latin1), TagLib.StringType.Latin1);
                         genreFrame.Text = new[] { genre };
                         tag.AddFrame(genreFrame);
 
@@ -944,14 +917,14 @@ namespace YoutubeDownloader
 
                             using (var fileStream = new FileStream(videoTempPath, FileMode.Create, FileAccess.Write))
                             {
-                                //await videoStream.CopyToAsync(fileStream);
-                                await CopyToAsyncWithProgress(videoStream, fileStream, progress, cancellationTokenSource.Token);
+                                await CopyToAsyncWithProgress(videoStream, fileStream, progress, cancellationTokenSource!.Token);
                             }
                             showProgressBarAndOthers(false, "");
                         }
                         catch (OperationCanceledException)
                         {
                             MessageBox.Show("Download was cancelled.");
+                            try { File.Delete(videoTempPath);} catch { MessageBox.Show("Couldn't delete the temporary files."); }
                             showProgressBarAndOthers(false, "");
                             return;
                         }
@@ -979,12 +952,14 @@ namespace YoutubeDownloader
                         catch (OperationCanceledException)
                         {
                             MessageBox.Show("Download was cancelled.");
+                            try{File.Delete(videoTempPath);File.Delete(audioTempPath);}catch{MessageBox.Show("Couldn't delete the temporary files.");}
                             showProgressBarAndOthers(false, "");
                             return;
                         }
                         catch (Exception ex)
                         {
                             MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                            try { File.Delete(videoTempPath); File.Delete(audioTempPath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
                             showProgressBarAndOthers(false, "");
                             return;
                         }
@@ -995,7 +970,8 @@ namespace YoutubeDownloader
                         if (!executed)
                         {
                             showProgressBarAndOthers(false, "");
-                            MessageBox.Show("Aborted all operations");
+                            MessageBox.Show("Aborted all operations!");
+                            try { File.Delete(videoTempPath); File.Delete(audioTempPath); File.Delete(outputFilePath);} catch { MessageBox.Show("Couldn't delete the temporary files."); }
                             return;
                         }
 
@@ -1005,17 +981,25 @@ namespace YoutubeDownloader
                         {
                             bool keepBigFile = false;
                             var videoDetails = await ytClient.Videos.GetAsync(url);
-
-                            TimeSpan duration = videoDetails.Duration.Value;
+                            
+                            TimeSpan duration = videoDetails.Duration!.Value;
 
                             var segments = getPartsFromDescription(videoDetails.Description, "", duration);
 
-                            using (var form = new SplitterForm(segments, true, duration))
+                            using (var splitterForm = new SplitterForm(segments, true, duration))
                             {
-                                if (form.ShowDialog() == DialogResult.OK)
+                                DialogResult splitterFormResult = splitterForm.ShowDialog();
+                                if (splitterFormResult == DialogResult.OK)
                                 {
-                                    segments = form.SongSegments;
-                                    keepBigFile = form.keepInitialBigFile;
+                                    segments = splitterForm.SongSegments;
+                                    keepBigFile = splitterForm.keepInitialBigFile;
+                                }
+                                else if (splitterFormResult == DialogResult.Cancel)
+                                {
+                                    showProgressBarAndOthers(false, "");
+                                    MessageBox.Show("Aborted all operations!");
+                                    try { File.Delete(videoTempPath); File.Delete(audioTempPath); File.Delete(outputFilePath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
+                                    return;
                                 }
                             }
 
@@ -1044,7 +1028,7 @@ namespace YoutubeDownloader
                         }
 
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false))
-                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, false, true);
+                            await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, false, true);
 
                         // Clean up temporary files
                         try
@@ -1056,6 +1040,15 @@ namespace YoutubeDownloader
                         {
                             MessageBox.Show("Couldn't delete the temporary files.");
                         }
+                    }
+                    else
+                    {
+                        if(videoStreamInfo == null && audioStreamInfo == null)
+                            MessageBox.Show($"Couldn't get the video and audio streams for: {titleTextBox.Text}");
+                        else if(videoStreamInfo == null)
+                            MessageBox.Show($"Couldn't get the video stream for: {titleTextBox.Text}");
+                        else if(audioStreamInfo == null)
+                            MessageBox.Show($"Couldn't get the audio stream for: {titleTextBox.Text}");
                     }
                 }
             }
@@ -1153,19 +1146,21 @@ namespace YoutubeDownloader
                             showProgressBarAndOthers(true, $"{getStringAndTruncatedIndexTitleString("I: Downloading Audio for", index, videoControl.titleTextBox.Text)}");
                             using (var fileStream = new FileStream(audioTempPath, FileMode.Create, FileAccess.Write))
                             {
-                                await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource.Token);
+                                await CopyToAsyncWithProgress(audioStream, fileStream, progress, cancellationTokenSource!.Token);
                             }
                             showProgressBarAndOthers(false, "");
                         }
                         catch (OperationCanceledException)
                         {
                             MessageBox.Show("Download was cancelled.");
+                            try{File.Delete(audioTempPath);}catch{MessageBox.Show("Couldn't delete the temporary files.");}
                             showProgressBarAndOthers(false, "");
                             return;
                         }
                         catch (Exception ex)
                         {
                             MessageBox.Show($"An error occurred when downloading video: {ex.Message}");
+                            try { File.Delete(audioTempPath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
                             showProgressBarAndOthers(false, "");
                             return;
                         }
@@ -1176,7 +1171,8 @@ namespace YoutubeDownloader
                         if (!executed)
                         {
                             showProgressBarAndOthers(false, "");
-                            MessageBox.Show("Aborted all operations");
+                            MessageBox.Show("Aborted all operations!");
+                            try { File.Delete(audioTempPath); File.Delete(outputFilePath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
                             return;
                         }
 
@@ -1189,7 +1185,7 @@ namespace YoutubeDownloader
 
                         var videoDetails = await ytClient.Videos.GetAsync(url);
 
-                        if (videoDetails.Duration.Value.Minutes >= 15 || downloadParts == true)
+                        if (videoDetails.Duration!.Value.Minutes >= 15 || downloadParts == true)
                         {
                             DialogResult result = DialogResult.No;
 
@@ -1204,7 +1200,8 @@ namespace YoutubeDownloader
 
                                 using (var tagEditor = new TagEditorForm(artist, album, year, genre, videoDetails.Title))
                                 {
-                                    if (tagEditor.ShowDialog() == DialogResult.OK)
+                                    DialogResult tagEditorResult = tagEditor.ShowDialog();
+                                    if (tagEditorResult == DialogResult.OK)
                                     {
                                         // Get the updated values
                                         artist = tagEditor.Artist;
@@ -1212,8 +1209,34 @@ namespace YoutubeDownloader
                                         year = tagEditor.Year;
                                         genre = tagEditor.Genre;
                                     }
-                                    else if (tagEditor.ShowDialog() == DialogResult.Cancel)
+                                    else if (tagEditorResult == DialogResult.Cancel)
+                                    {
+                                        showProgressBarAndOthers(false, "");
+                                        MessageBox.Show("Aborted all operations!");
+                                        try { File.Delete(audioTempPath); File.Delete(outputFilePath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
                                         return;
+                                    }
+                                }
+
+                                TimeSpan duration = videoDetails.Duration.Value;
+
+                                var segments = getPartsFromDescription(videoDetails.Description, artist, duration);
+
+                                using (var splitterForm = new SplitterForm(segments, false, duration))
+                                {
+                                    DialogResult splitterFormResult = splitterForm.ShowDialog();
+                                    if (splitterFormResult == DialogResult.OK)
+                                    {
+                                        segments = splitterForm.SongSegments;
+                                        keepBigFile = splitterForm.keepInitialBigFile;
+                                    }
+                                    else if (splitterFormResult == DialogResult.Cancel)
+                                    {
+                                        showProgressBarAndOthers(false, "");
+                                        MessageBox.Show("Aborted all operations!");
+                                        try { File.Delete(audioTempPath); File.Delete(outputFilePath); } catch { MessageBox.Show("Couldn't delete the temporary files."); }
+                                        return;
+                                    }
                                 }
 
                                 string albumFolderPath = CreateAlbumFolders(downloadPathFromUI, artist, album, year);
@@ -1221,22 +1244,9 @@ namespace YoutubeDownloader
                                 if (albumFolderPath != null)
                                     downloadPath = albumFolderPath;
 
-                                TimeSpan duration = videoDetails.Duration.Value;
-
-                                var segments = getPartsFromDescription(videoDetails.Description, artist, duration);
-
-                                using (var form = new SplitterForm(segments, false, duration))
-                                {
-                                    if (form.ShowDialog() == DialogResult.OK)
-                                    {
-                                        segments = form.SongSegments;
-                                        keepBigFile = form.keepInitialBigFile;
-                                    }
-                                }
-
                                 showProgressBarAndOthers(false, "");
 
-                                List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, albumFolderPath, false, progress);
+                                List<string> songPathList = await spliFileIntoSegments(outputFilePath, segments, albumFolderPath!, false, progress);
                                 //function definition: spliFileIntoSegments(string toSplitMP3FilePath, List<SongSegment> segments, string splitOutputDirectory, bool audioOnly)
 
                                 Thread.Sleep(500); //delay for the writing of the file to complete
@@ -1259,7 +1269,7 @@ namespace YoutubeDownloader
                                 }
 
                                 if (downloadThumbnail == true)
-                                    DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", true, false);
+                                    await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", true, false);
 
                                 if (!keepBigFile)
                                     try { File.Delete(outputFilePath); } catch { }
@@ -1267,7 +1277,7 @@ namespace YoutubeDownloader
                         }
 
                         if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false) && itemIsAlbum == false) //if itemIsAlbum == true, the cover was already downloaded above
-                            DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
+                            await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
 
                         // Clean up temporary files
                         try
@@ -1278,6 +1288,10 @@ namespace YoutubeDownloader
                         {
                             MessageBox.Show("Couldn't delete the temporary files.");
                         }
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Couldn't get the audio stream for: {titleTextBox.Text}");
                     }
                 }
             }
@@ -1357,8 +1371,6 @@ namespace YoutubeDownloader
             string originalText = downloadButton.Text;
             downloadButton.Text = "DOWNLOADING";
             showProgressBarAndOthers(true, "");
-            
-            var fetchedVideoDetails = GetFetchedVideoDetails();
 
             var videoUrl = lastFetchedVideoUrl;
 
