@@ -22,7 +22,6 @@ namespace YoutubeDownloader
             InitializeComponent();
 
             label2.Text = "Edit tags for: " + ((title.Length > 30) ? title.Substring(0, 30) + ".." : title);
-            //return (newTitle.Length > 60) ? newTitle.Substring(0, 60) + ".." : newTitle;
 
             // Set default values
             txtArtist.Text = defaultArtist;

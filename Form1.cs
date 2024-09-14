@@ -196,6 +196,7 @@ namespace YoutubeDownloader
             }
             else
             {
+                fromPlaylist = false;
                 var video = await ytClient.Videos.GetAsync(url);
                 var videoId = YoutubeExplode.Videos.VideoId.Parse(url);
                 var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
@@ -561,15 +562,16 @@ namespace YoutubeDownloader
                     {
                         string time = match.Groups["time"].Value;
                         string title = match.Groups["title"].Value.Trim();
-                        title = title.Trim(' ', '-');
+                        title = title.Trim(' ', '-', '(', ')', '[', ']', '_', '{', '}', '|', '\'');
 
+                        var cleanedTitle = Regex.Replace(title, @"^(?:\d+)[\.\-\)\:\]\s\/]*", "");
                         var startTime = ParseTime(time);
 
                         segments.Add(new SongSegment
                         {
                             StartTime = startTime,
                             EndTime = TimeSpan.Zero, // Placeholder, to be determined later
-                            Title = title,
+                            Title = cleanedTitle,
                             Artist = artist
 
                         });
@@ -859,10 +861,12 @@ namespace YoutubeDownloader
                         string fileExtension = string.IsNullOrEmpty(extension) ? ".jpg" : extension;
                         string downloadPath;
 
+                        string sanitizedTitle = new string(title.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
+
                         if (itemIsAlbum)
                             downloadPath = Path.Combine(downloadDirectory, $"cover{fileExtension}");
                         else
-                            downloadPath = videoAndAudio ? Path.Combine(downloadDirectory, $"{title} - thumbnail{fileExtension}") : Path.Combine(downloadDirectory, $"{title} - cover{fileExtension}");
+                            downloadPath = videoAndAudio ? Path.Combine(downloadDirectory, $"{sanitizedTitle} - thumbnail{fileExtension}") : Path.Combine(downloadDirectory, $"{sanitizedTitle} - cover{fileExtension}");
 
                         // Stream the content to a file
                         using (var contentStream = await response.Content.ReadAsStreamAsync())
@@ -1073,17 +1077,18 @@ namespace YoutubeDownloader
                 progressBar.Value = (int)percent;
             });
 
-            if (videoControlReferences.Count > 1)
+            //find the number of checked items
+            if (videoControlReferences.Count >= 1)
                 foreach (var videoControl in videoControlReferences)
                 {
                     var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
                     if (checkBox.Checked)
                         itemsChecked++;
                 }
-
+            //set the playlist tags 
             if (videoControlReferences.Count > 1 && itemsChecked >= 1)
             {
-                DialogResult result = MessageBox.Show("Do the tracks belong to an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                DialogResult result = MessageBox.Show("Is this playlist an album?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.Yes)
                 {
                     playlistIsAlbum = true;
@@ -1107,11 +1112,12 @@ namespace YoutubeDownloader
                     if (albumFolderPath != null)
                         downloadPath = albumFolderPath;
                 }
+            }
 
-                if (itemsChecked == 0)
-                {
-                    MessageBox.Show("Please check at least one item.");
-                }
+            if (itemsChecked == 0)
+            {
+                MessageBox.Show("Please check at least one item.");
+                return;
             }
 
             foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
@@ -1127,10 +1133,12 @@ namespace YoutubeDownloader
                     string filename_raw = titleTextBox.Text;
                     string filename = new string(filename_raw.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
                     string trackTitle = filename;
-                    if (noLabel.Text.Length <= 1)
-                        filename = "0" + noLabel.Text + ". " + filename;
-                    else
-                        filename = noLabel.Text + ". " + filename;
+
+                    if (playlistIsAlbum == true)
+                        if (noLabel.Text.Length <= 1)
+                            filename = "0" + noLabel.Text + ". " + filename;
+                        else
+                            filename = noLabel.Text + ". " + filename;
 
                     var filePath = Path.Combine(downloadPath, filename);
                     var outputFilePath = filePath + ".mp3";
@@ -1185,11 +1193,11 @@ namespace YoutubeDownloader
 
                         var videoDetails = await ytClient.Videos.GetAsync(url);
 
-                        if (videoDetails.Duration!.Value.Minutes >= 15 || downloadParts == true)
+                        if (videoDetails.Duration!.Value.TotalMinutes >= 15 || downloadParts == true)
                         {
                             DialogResult result = DialogResult.No;
 
-                            if (videoDetails.Duration.Value.Minutes >= 15 && downloadParts == false)
+                            if (videoDetails.Duration.Value.TotalMinutes >= 15 && downloadParts == false)
                                 result = MessageBox.Show("This item is pretty long, it seems to be an album. Search for song names and times in the description?", "Album Question", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                             if (result == DialogResult.Yes || downloadParts == true)
@@ -1269,16 +1277,29 @@ namespace YoutubeDownloader
                                 }
 
                                 if (downloadThumbnail == true)
-                                    await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", true, false);
+                                    await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", itemIsAlbum, false); //itemIsAlbum == true
 
                                 if (!keepBigFile)
                                     try { File.Delete(outputFilePath); } catch { }
                             }
                         }
 
-                        if (downloadThumbnail == true && ((fromPlaylist == true && index == 0) || fromPlaylist == false) && itemIsAlbum == false) //if itemIsAlbum == true, the cover was already downloaded above
-                            await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
 
+                        if (downloadThumbnail == true)
+                        {
+                            if (fromPlaylist == true)
+                            {
+                                if (playlistIsAlbum == true)
+                                {
+                                    if (index == 0)  //download a single conver file for the whole album
+                                        await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, "", true, false);
+                                }
+                                else //download cover images for each selected playlist item
+                                    await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
+                            }
+                            else //should be only one item, download its cover image
+                                await DownloadThumbnailAsync(videoControl.pictureBox.ImageLocation, downloadPath, videoControl.titleTextBox.Text, itemIsAlbum, false);
+                        }
                         // Clean up temporary files
                         try
                         {
