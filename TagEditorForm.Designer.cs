@@ -1,4 +1,4 @@
-﻿namespace YoutubeDownloader
+﻿namespace YouTubeAVSaver
 {
     partial class TagEditorForm
     {

@@ -7,7 +7,7 @@ using YoutubeExplode.Videos.Streams;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace YoutubeDownloader
+namespace YouTubeAVSaver
 {
     public partial class Form1 : Form
     {
@@ -1056,7 +1056,7 @@ namespace YoutubeDownloader
                     }
                 }
             }
-            MessageBox.Show("Download finished!", "YoutubeDownloader");
+            MessageBox.Show("Download finished!", "YouTubeAVSaver");
         }
 
         async void downloadAudioOnly(string URL, string downloadPathFromUI)
@@ -1316,7 +1316,7 @@ namespace YoutubeDownloader
                     }
                 }
             }
-            MessageBox.Show("Download finished!", "YoutubeDownloader");
+            MessageBox.Show("Download finished!", "YouTubeAVSaver");
         }
 
         //Buttons

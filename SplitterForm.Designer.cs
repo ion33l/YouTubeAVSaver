@@ -1,4 +1,4 @@
-﻿namespace YoutubeDownloader
+﻿namespace YouTubeAVSaver
 {
     public class SongSegment
     {

@@ -1,4 +1,4 @@
-﻿namespace YoutubeDownloader
+﻿namespace YouTubeAVSaver
 {
     partial class Form1
     {
@@ -426,7 +426,7 @@
             Controls.Add(downloadButton);
             Controls.Add(youtubeURLTextBox);
             Name = "Form1";
-            Text = "YoutubeDownloader";
+            Text = "YouTubeAVSaver";
             panelAudioOnly.ResumeLayout(false);
             panelAudioOnly.PerformLayout();
             ResumeLayout(false);
