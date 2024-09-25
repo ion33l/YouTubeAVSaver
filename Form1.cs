@@ -1334,6 +1334,9 @@ namespace YouTubeAVSaver
             if (string.IsNullOrWhiteSpace(videoUrl))
             {
                 MessageBox.Show("Please enter the Youtube URL before proceeding.", "Download Path Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                fetchButton.Text = originalText;
+                fetchButton.Enabled = true;
+                downloadButton.Enabled = true;
                 return;
             }
 
