@@ -57,6 +57,7 @@
             textBoxSearch = new TextBox();
             buttonClearText = new Button();
             label15 = new Label();
+            label16 = new Label();
             checkBox1 = new CheckBox();
             checkBox2 = new CheckBox();
             labelPlaylist = new Label();
@@ -271,6 +272,17 @@
             label14.Size = new Size(109, 15);
             label14.TabIndex = 20;
             label14.Text = "Best Audio Quality";
+
+            // label16 - Language
+            label16.AutoSize = true;
+            label16.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label16.Location = new Point(356, 216);
+            label16.Name = "label16";
+            label16.Size = new Size(63, 15);
+            label16.TabIndex = 17;
+            label16.Text = "Language";
+            label16.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
             // 
             // progressBar
             // 
@@ -387,6 +399,7 @@
             openPathButton.Text = "Open Path";
             openPathButton.UseVisualStyleBackColor = true;
             openPathButton.Click += openPathButton_Click;
+            
             // 
             // Form1
             // 
@@ -397,6 +410,7 @@
             Controls.Add(labelPlaylist);
             Controls.Add(checkBox2);
             Controls.Add(checkBox1);
+            Controls.Add(label16);
             Controls.Add(label15);
             Controls.Add(buttonClearText);
             Controls.Add(textBoxSearch);
@@ -464,6 +478,7 @@
         private TextBox textBoxSearch;
         private Button buttonClearText;
         private Label label15;
+        private Label label16;
         private CheckBox checkBox1;
         private CheckBox checkBox2;
         private Label labelPlaylist;

@@ -13,10 +13,11 @@ namespace YouTubeAVSaver
     {
         public YoutubeClient ytClient;
         private CancellationTokenSource? cancellationTokenSource;
-        private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)> videoControlValues =
-                new List<(bool, int, string, string, string[], string, string[], string)>();
-        private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, string url)> videoControlReferences =
-            new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, string)>();
+        private List<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string[] Languages, string SelectedLanguage, string url)> videoControlValues =
+                new List<(bool, int, string, string, string[], string, string[], string[], string, string)>();
+
+        private List<(CheckBox checkBox, Label noLabel, TextBox titleTextBox, PictureBox pictureBox, ComboBox resolutionComboBox, ComboBox languageComboBox, string url)> videoControlReferences =
+            new List<(CheckBox, Label, TextBox, PictureBox, ComboBox, ComboBox, string)>();
         private Progress<ProgressInfo> progressReporter;
 
         public string lastFetchedVideoUrl = "";
@@ -93,6 +94,8 @@ namespace YouTubeAVSaver
             checkBox2.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             label15.Anchor = AnchorStyles.Top;
 
+            label16.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
             label3.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Resolution
             label13.Anchor = AnchorStyles.Top | AnchorStyles.Right; //Size
             label8.Anchor = AnchorStyles.Top;  //VIDEOS TO DOWNLOAD
@@ -100,6 +103,8 @@ namespace YouTubeAVSaver
 
             scrollablePanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             panelAudioOnly.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+
         }
 
         private struct ProgressInfo
@@ -121,7 +126,7 @@ namespace YouTubeAVSaver
         }
 
 
-        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[]>
+        async Task<(bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string[] Languages, string SelectedLanguage, string url)[]>
              getPanelVideosDetailsAsync(string url)
         {
             if(cancellationTokenSource == null)
@@ -150,6 +155,17 @@ namespace YouTubeAVSaver
                         var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                         var videoStreams = streamManifest.GetVideoStreams();
                         var audioStreams = streamManifest.GetAudioOnlyStreams();
+
+                        var availableLanguages = audioStreams
+                            .Where(s => s.AudioLanguage != null)
+                            .Select(s => s.AudioLanguage.Value.Name)
+                            .Distinct()
+                            .ToArray();
+
+                        // If no languages found, add default
+                        if (availableLanguages.Length == 0)
+                            availableLanguages = new[] { "Default" };
+                        
                         var audioStreamInfo = audioStreams
                                                 .OrderByDescending(s => s.Bitrate)
                                                 .Select(s => new
@@ -177,7 +193,7 @@ namespace YouTubeAVSaver
                                 sizes[j] = "N/A";
                         }
 
-                        videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), playlistVideos[i].Url));
+                        videoControlValues.Add((true, i + 1, playlistVideos[i].Title, playlistVideos[i].Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), availableLanguages, availableLanguages[0], playlistVideos[i].Url));
                     }
                 }
                 catch (OperationCanceledException) 
@@ -202,6 +218,18 @@ namespace YouTubeAVSaver
                 var streamManifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
                 var videoStreams = streamManifest.GetVideoStreams();
                 var audioStreams = streamManifest.GetAudioOnlyStreams();
+
+                // Get available languages
+                var availableLanguages = audioStreams
+                    .Where(s => s.AudioLanguage != null)
+                    .Select(s => s.AudioLanguage.Value.Name)
+                    .Distinct()
+                    .ToArray();
+                
+                // If no languages found, add default
+                if (availableLanguages.Length == 0)
+                    availableLanguages = new[] { "Default" };
+
                 var audioStreamInfo = audioStreams
                                         .OrderByDescending(s => s.Bitrate)
                                         .Select(s => new
@@ -229,7 +257,7 @@ namespace YouTubeAVSaver
                         sizes[j] = "N/A";
                 }
 
-                videoControlValues.Add((true, 1, video.Title, video.Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), url));
+                videoControlValues.Add((true, 1, video.Title, video.Thumbnails.GetWithHighestResolution().Url, resolutions.ToArray(), resolutions.ToArray()[0], sizes.ToArray(), availableLanguages, availableLanguages[0], url));
 
                 label8.Text = "VIDEO TO DOWNLOAD:";
                 labelPlaylist.Text = "";
@@ -319,7 +347,7 @@ namespace YouTubeAVSaver
             videoControlValues.Clear();
         }
 
-        private void UpdatePanel((bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string url)[] videos)
+        private void UpdatePanel((bool Check, int No, string Title, string Thumbnail, string[] Resolutions, string SelectedResolution, string[] Sizes, string[] Languages, string SelectedLanguage, string url)[] videos)
         {
             Color oddColor = Color.FromArgb(250, 250, 250); // Light grey for odd entries
             Color evenColor = Color.FromArgb(220, 220, 220); // Slightly darker grey for even entries
@@ -370,7 +398,7 @@ namespace YouTubeAVSaver
                 TextBox titleTextBox = new TextBox
                 {
                     Location = new Point(50, 25),
-                    Width = ((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 225) : (scrollablePanel.Width - 225 - scrollbarWidth),  /* sum of all other items + bug if scrollable panel exceeds the visible panel. the scrollbar appears*/
+                    Width = ((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 295) : (scrollablePanel.Width - 295 - scrollbarWidth),
                     Text = video.Title,
                     BackColor = white
                 };
@@ -388,19 +416,64 @@ namespace YouTubeAVSaver
                 };
                 //videoPanel.Controls.Add(pictureBox); //decided not to show thumnails because of its overhead
                 
+                // Language (ComboBox)
+                ComboBox languageComboBox = new ComboBox
+                {
+                    Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ?
+                                        (scrollablePanel.Width - 237) : (scrollablePanel.Width - 237 - scrollbarWidth), 25),
+                    Width = 67,
+                    DropDownStyle = ComboBoxStyle.DropDownList,
+                    BackColor = white,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right
+                };
+
+                languageComboBox.Items.AddRange(video.Languages);
+                
+                if (video.SelectedLanguage != null && Array.Exists(video.Languages, lang => lang == video.SelectedLanguage))
+                {
+                    languageComboBox.SelectedItem = video.SelectedLanguage;
+                }
+                else
+                {
+                    languageComboBox.SelectedIndex = 0;
+                }
+
+                videoPanel.Controls.Add(languageComboBox);
+
                 // Resolution (ComboBox)
                 ComboBox resolutionComboBox = new ComboBox
                 {
-                    Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ? (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
+                    Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ?
+                                        (scrollablePanel.Width - 167) : (scrollablePanel.Width - 167 - scrollbarWidth), 25),
                     //Location = new Point(scrollablePanel.Width - 167 /* size + resolution*/, 25),
                     Width = 67,
                     DropDownStyle = ComboBoxStyle.DropDownList,
-                    BackColor = white
+                    BackColor = white,
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right
                 };
 
                 // Add unique resolution options for each video
-                resolutionComboBox.Anchor = AnchorStyles.Top | AnchorStyles.Right;
                 resolutionComboBox.Items.AddRange(video.Resolutions);
+
+                // Adjust DropDownWidth dynamically based on the longest resolution text
+                resolutionComboBox.DropDown += (sender, e) =>
+                {
+                    int maxWidth = resolutionComboBox.Width; // Start with the default width
+
+                    using (Graphics g = resolutionComboBox.CreateGraphics())
+                    {
+                        foreach (var item in resolutionComboBox.Items)
+                        {
+                            int itemWidth = TextRenderer.MeasureText(item.ToString(), resolutionComboBox.Font).Width + 10;
+                            if (itemWidth > maxWidth)
+                            {
+                                maxWidth = itemWidth;
+                            }
+                        }
+                    }
+
+                    resolutionComboBox.DropDownWidth = maxWidth; // Adjust DropDownWidth only
+                };
 
                 // Select the appropriate resolution
                 if (video.SelectedResolution != null && Array.Exists(video.Resolutions, res => res == video.SelectedResolution))
@@ -455,7 +528,7 @@ namespace YouTubeAVSaver
                 scrollablePanel.Controls.Add(videoPanel);
 
                 // Store control references
-                videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url));
+                videoControlReferences.Add((checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, languageComboBox, url));
             }
         }
 
@@ -891,7 +964,7 @@ namespace YouTubeAVSaver
 
             foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
             {
-                var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
+                    var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, languageComboBox, url) = videoControl;
                 // Check if the CheckBox is checked
                 if (checkBox.Checked)
                 {
@@ -903,7 +976,16 @@ namespace YouTubeAVSaver
                     var filePath = Path.Combine(downloadPath, filename);
                     var outputFilePath = filePath + ".mp4";
 
-                    var audioStreamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                            string selectedLanguage = languageComboBox.SelectedItem?.ToString() ?? "Default";
+        
+                    // CHANGE audioStreamInfo selection
+                    var audioStreamInfo = selectedLanguage == "Default" 
+                        ? streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate()
+                        : streamManifest.GetAudioOnlyStreams()
+                            .Where(s => s.AudioLanguage != null && s.AudioLanguage.Value.Name == selectedLanguage)
+                            .OrderByDescending(s => s.Bitrate)
+                            .FirstOrDefault() ?? streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+
                     var videoStreamInfo = streamManifest
                                         .GetVideoStreams()  //worked with GetVideoOnlyStreams()
                                         .Where(s => s.VideoQuality.Label == selectedResolution)
@@ -1081,7 +1163,7 @@ namespace YouTubeAVSaver
             if (videoControlReferences.Count >= 1)
                 foreach (var videoControl in videoControlReferences)
                 {
-                    var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
+                    var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, languageComboBox, url) = videoControl;
                     if (checkBox.Checked)
                         itemsChecked++;
                 }
@@ -1123,7 +1205,7 @@ namespace YouTubeAVSaver
             foreach (var (videoControl, index) in videoControlReferences.Select((value, index) => (value, index)))
             {
                 itemIsAlbum = false;
-                var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, url) = videoControl;
+                var (checkBox, noLabel, titleTextBox, pictureBox, resolutionComboBox, languageComboBox, url) = videoControl;
 
                 // Check if the CheckBox is checked
                 if (checkBox.Checked)
@@ -1143,7 +1225,15 @@ namespace YouTubeAVSaver
                     var filePath = Path.Combine(downloadPath, filename);
                     var outputFilePath = filePath + ".mp3";
 
-                    var audioStreamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                    string selectedLanguage = languageComboBox.SelectedItem?.ToString() ?? "Default";
+        
+                    // CHANGE audioStreamInfo selection
+                    var audioStreamInfo = selectedLanguage == "Default" 
+                        ? streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate()
+                        : streamManifest.GetAudioOnlyStreams()
+                            .Where(s => s.AudioLanguage != null && s.AudioLanguage.Value.Name == selectedLanguage)
+                            .OrderByDescending(s => s.Bitrate)
+                            .FirstOrDefault() ?? streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
                     if (audioStreamInfo != null)
                     {
                         var audioTempPath = Path.Combine(downloadPath, $"audio.{audioStreamInfo.Container.Name}");
