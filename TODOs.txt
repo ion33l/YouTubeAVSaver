@@ -20,6 +20,7 @@ v 14) "clear title of" to be shown only for playlists and message if not found (
 v 15) add an info (qustion mark - ?) to the radio buttons
 v 16) make fetching operation show on operation label and make it cancellable
 v 17) make the operationsLabel more roomy (rearrange the progressbar and label)
+v 17.1) add language selection (english, german, etc.) - use a combo box for that
 
 x18) Nice to have: improve the ffmpeg splitting of video files, now (with the copy option) the first few seconds are audio only. Re-encoding would take to much..
 x19) Nice to have: See if logging-in is possible (for fetching and downloading age restricted videos)

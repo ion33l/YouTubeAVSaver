@@ -28,6 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.BackColor = Color.FromArgb(248, 249, 250);
+            this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
             youtubeURLTextBox = new TextBox();
             downloadButton = new Button();
             txtFolderPath = new TextBox();
@@ -69,27 +72,29 @@
             // 
             youtubeURLTextBox.Location = new Point(136, 46);
             youtubeURLTextBox.Name = "youtubeURLTextBox";
-            youtubeURLTextBox.Size = new Size(400, 23);
+            youtubeURLTextBox.Size = new Size(400, 25);
             youtubeURLTextBox.TabIndex = 0;
+            youtubeURLTextBox.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             youtubeURLTextBox.KeyDown += youtubeURLTextBox_KeyDown;
             // 
             // downloadButton
             // 
-            downloadButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            downloadButton.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             downloadButton.Location = new Point(284, 570);
             downloadButton.Name = "downloadButton";
-            downloadButton.Size = new Size(120, 40);
+            downloadButton.Size = new Size(135, 45);
             downloadButton.TabIndex = 1;
             downloadButton.Text = "DOWNLOAD";
-            downloadButton.UseVisualStyleBackColor = true;
+            downloadButton.UseVisualStyleBackColor = false;
             downloadButton.Click += downloadButton_Click;
             // 
             // txtFolderPath
             // 
             txtFolderPath.Location = new Point(136, 138);
             txtFolderPath.Name = "txtFolderPath";
-            txtFolderPath.Size = new Size(400, 23);
+            txtFolderPath.Size = new Size(400, 25);
             txtFolderPath.TabIndex = 2;
+            txtFolderPath.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             // 
             // browseButton
             // 
@@ -260,7 +265,7 @@
             panelAudioOnly.Controls.Add(label14);
             panelAudioOnly.Location = new Point(442, 215);
             panelAudioOnly.Name = "panelAudioOnly";
-            panelAudioOnly.Size = new Size(161, 319);
+            panelAudioOnly.Size = new Size(180, 319);
             panelAudioOnly.TabIndex = 19;
             // 
             // label14
@@ -276,7 +281,7 @@
             // label16 - Language
             label16.AutoSize = true;
             label16.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label16.Location = new Point(356, 216);
+            label16.Location = new Point(371, 216);
             label16.Name = "label16";
             label16.Size = new Size(63, 15);
             label16.TabIndex = 17;
@@ -399,7 +404,7 @@
             openPathButton.Text = "Open Path";
             openPathButton.UseVisualStyleBackColor = true;
             openPathButton.Click += openPathButton_Click;
-            
+
             // 
             // Form1
             // 

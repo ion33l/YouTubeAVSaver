@@ -16,7 +16,7 @@
 	<ItemGroup>
 		<PackageReference Include="taglibsharp" Version="2.3.0" />
 		<PackageReference Include="VideoLibrary" Version="3.2.5" />
-		<PackageReference Include="YouTubeExplode" Version="6.5.3" />
+		<PackageReference Include="YouTubeExplode" Version="6.5.4" />
 	</ItemGroup>
 
 	<ItemGroup>

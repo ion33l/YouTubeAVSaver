@@ -30,6 +30,7 @@ namespace YouTubeAVSaver
         public Form1()
         {
             InitializeComponent();
+            ApplyModernStyling();
             ytClient = new YoutubeClient();
             cancelButton.Hide();
             panelAudioOnly.Visible = false;
@@ -68,7 +69,183 @@ namespace YouTubeAVSaver
         {
             labelOperation.Left = initialLabelOperationLeft + ((progressBar.Width - labelOperation.Width) / 2);
         }
-        
+
+        private void ApplyModernStyling()
+        {
+            // Modern form appearance
+            this.BackColor = Color.FromArgb(248, 249, 250);
+            this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
+            // Style primary buttons
+            StylePrimaryButton(downloadButton, Color.FromArgb(40, 167, 69)); // Green
+            StyleSecondaryButton(fetchButton, Color.FromArgb(0, 123, 255)); // Blue
+            StyleSecondaryButton(browseButton, Color.FromArgb(108, 117, 125)); // Gray
+            StyleSecondaryButton(openPathButton, Color.FromArgb(108, 117, 125)); // Gray
+            StyleDangerButton(cancelButton, Color.FromArgb(220, 53, 69)); // Red
+            StyleSecondaryButton(buttonClearText, Color.FromArgb(108, 117, 125)); // Gray
+
+            // Style textboxes
+            StyleTextBox(youtubeURLTextBox);
+            StyleTextBox(txtFolderPath);
+            StyleTextBox(textBoxSearch);
+
+            // Style radio buttons
+            StyleRadioButton(videoAndAudioButton);
+            StyleRadioButton(audioOnlyButton);
+
+            // Style checkboxes
+            StyleCheckBox(checkBox1);
+            StyleCheckBox(checkBox2);
+
+            // Style labels
+            StyleLabels();
+
+            // Style progress bar
+            StyleProgressBar();
+
+            // Remove old separator lines and add modern ones
+            RemoveOldSeparators();
+            AddModernSeparators();
+        }
+        private void StylePrimaryButton(Button button, Color backColor)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.BackColor = backColor;
+            button.ForeColor = Color.White;
+            button.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            button.Cursor = Cursors.Hand;
+
+            // Add hover effects
+            button.MouseEnter += (s, e) => button.BackColor = ControlPaint.Dark(backColor, 0.1f);
+            button.MouseLeave += (s, e) => button.BackColor = backColor;
+        }
+
+        private void StyleSecondaryButton(Button button, Color backColor)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 1;
+            button.FlatAppearance.BorderColor = backColor;
+            button.BackColor = Color.White;
+            button.ForeColor = backColor;
+            button.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+            button.Cursor = Cursors.Hand;
+            
+            // Add hover effects
+            button.MouseEnter += (s, e) => {
+                button.BackColor = backColor;
+                button.ForeColor = Color.White;
+            };
+            button.MouseLeave += (s, e) => {
+                button.BackColor = Color.White;
+                button.ForeColor = backColor;
+            };
+        }
+
+        private void StyleDangerButton(Button button, Color backColor)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.BackColor = backColor;
+            button.ForeColor = Color.White;
+            button.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
+            button.Cursor = Cursors.Hand;
+            
+            // Add hover effects
+            button.MouseEnter += (s, e) => button.BackColor = ControlPaint.Dark(backColor, 0.1f);
+            button.MouseLeave += (s, e) => button.BackColor = backColor;
+        }
+
+        private void StyleTextBox(TextBox textBox)
+        {
+            textBox.BorderStyle = BorderStyle.FixedSingle;
+            textBox.Font = new Font("Segoe UI", 9F);
+            textBox.BackColor = Color.White;
+            textBox.ForeColor = Color.FromArgb(33, 37, 41);
+            
+            // Add focus effects
+            textBox.Enter += (s, e) => textBox.BackColor = Color.FromArgb(255, 255, 255);
+            textBox.Leave += (s, e) => textBox.BackColor = Color.White;
+        }
+
+        private void StyleRadioButton(RadioButton radioButton)
+        {
+            radioButton.Font = new Font("Segoe UI", 9F);
+            radioButton.ForeColor = Color.FromArgb(33, 37, 41);
+            radioButton.BackColor = Color.Transparent;
+        }
+
+        private void StyleCheckBox(CheckBox checkBox)
+        {
+            checkBox.Font = new Font("Segoe UI", 9F);
+            checkBox.ForeColor = Color.FromArgb(33, 37, 41);
+            checkBox.BackColor = Color.Transparent;
+        }
+
+        private void StyleLabels()
+        {
+            // Style main labels
+            label1.ForeColor = Color.FromArgb(33, 37, 41);
+            label2.ForeColor = Color.FromArgb(33, 37, 41);
+            label5.ForeColor = Color.FromArgb(33, 37, 41);
+            label8.ForeColor = Color.FromArgb(33, 37, 41);
+            labelClearTitleOf.ForeColor = Color.FromArgb(33, 37, 41);
+            labelOperation.ForeColor = Color.FromArgb(33, 37, 41);
+            labelPlaylist.ForeColor = Color.FromArgb(33, 37, 41);
+            
+            // Style column headers
+            label9.ForeColor = Color.FromArgb(73, 80, 87);
+            label11.ForeColor = Color.FromArgb(73, 80, 87);
+            label12.ForeColor = Color.FromArgb(73, 80, 87);
+            label3.ForeColor = Color.FromArgb(73, 80, 87);
+            label13.ForeColor = Color.FromArgb(73, 80, 87);
+            label16.ForeColor = Color.FromArgb(73, 80, 87);
+        }
+
+        private void StyleProgressBar()
+        {
+            progressBar.Style = ProgressBarStyle.Continuous;
+            progressBar.BackColor = Color.FromArgb(233, 236, 239);
+            progressBar.ForeColor = Color.FromArgb(0, 123, 255);
+        }
+
+        private void RemoveOldSeparators()
+        {
+            // Hide the old black separator lines
+            label4.Visible = false;
+            label6.Visible = false;
+            label7.Visible = false;
+            label15.Visible = false;
+        }
+
+        private void AddModernSeparators()
+        {
+            // Add modern separator after URL section
+            Panel separator1 = new Panel();
+            separator1.Height = 1;
+            separator1.BackColor = Color.FromArgb(222, 226, 230);
+            separator1.Location = new Point(22, 78);
+            separator1.Size = new Size(599, 1);
+            this.Controls.Add(separator1);
+
+            // Add modern separator after download type section
+            Panel separator2 = new Panel();
+            separator2.Height = 1;
+            separator2.BackColor = Color.FromArgb(222, 226, 230);
+            separator2.Location = new Point(22, 124);
+            separator2.Size = new Size(599, 1);
+            this.Controls.Add(separator2);
+
+            // Add modern separator before video list
+            Panel separator3 = new Panel();
+            separator3.Height = 1;
+            separator3.BackColor = Color.FromArgb(222, 226, 230);
+            separator3.Location = new Point(22, 180);
+            separator3.Size = new Size(599, 1);
+            this.Controls.Add(separator3);
+        }
+
+
         void setToolTip()
         {
             ToolTip toolTip = new ToolTip();
@@ -420,7 +597,7 @@ namespace YouTubeAVSaver
                 ComboBox languageComboBox = new ComboBox
                 {
                     Location = new Point(((i < (int)(scrollablePanel.Height / videoPanel.Height) + 1) && exceedsScrollablePanel) ?
-                                        (scrollablePanel.Width - 237) : (scrollablePanel.Width - 237 - scrollbarWidth), 25),
+                                        (scrollablePanel.Width - 240) : (scrollablePanel.Width - 240 - scrollbarWidth), 25),
                     Width = 67,
                     DropDownStyle = ComboBoxStyle.DropDownList,
                     BackColor = white,
@@ -428,7 +605,28 @@ namespace YouTubeAVSaver
                 };
 
                 languageComboBox.Items.AddRange(video.Languages);
-                
+
+                // Add the DropDown event handler for dynamic width adjustment
+                languageComboBox.DropDown += (sender, e) =>
+                {
+                    int maxWidth = languageComboBox.Width; // Start with the default width
+
+                    using (Graphics g = languageComboBox.CreateGraphics())
+                    {
+                        foreach (string language in video.Languages)
+                        {
+                            int textWidth = (int)g.MeasureString(language, languageComboBox.Font).Width;
+                            if (textWidth > maxWidth)
+                            {
+                                maxWidth = textWidth;
+                            }
+                        }
+                    }
+
+                    // Add some padding to ensure text fits comfortably
+                    languageComboBox.DropDownWidth = maxWidth + 20;
+                };
+
                 if (video.SelectedLanguage != null && Array.Exists(video.Languages, lang => lang == video.SelectedLanguage))
                 {
                     languageComboBox.SelectedItem = video.SelectedLanguage;
