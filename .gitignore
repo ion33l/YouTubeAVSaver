@@ -361,5 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/YouTubeAVSaver.win-x64/win-x64
-/YouTubeAVSaver.win-x64/RunTheApp.bat

@@ -1,0 +1,7 @@
+1. Build -> Publish Selection
+2. 	Configuration 	 -> Release/Any CPU
+	Target Framework -> net8.0-windows
+	Deployment mode  -> Self-contained
+	Target runtime 	 -> win-x64
+3. Take the win-x64 resulting folder and paste it inside the YouTubeAVSaver.win-x64/win-x64 which is now empty
+4. Archive the YouTubeAVSaver.win-x64 folder and upload it to github
